@@ -113,6 +113,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .seg button { font: inherit; font-family: var(--mono); font-weight: 700; font-size: 13px; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); border-radius: 8px; padding: 6px 0; cursor: pointer; }
 .seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
 .seg .pause { padding: 6px 10px; font-family: var(--body); }
+.sound { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.sound .btn { padding: 7px 10px; font-size: 13.5px; }
+.sound .btn[aria-pressed="false"] { color: var(--muted); font-weight: 500; text-decoration: line-through; }
 
 .elist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
 .erow {
@@ -205,6 +208,13 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
           <div class="k" style="margin-bottom:6px">Speed</div>
           <div class="seg" id="speed" role="group" aria-label="Game speed"></div>
         </div>
+        <div>
+          <div class="k" style="margin-bottom:6px">Sound</div>
+          <div class="sound">
+            <button class="btn" id="musicBtn" type="button" aria-pressed="true">Music on</button>
+            <button class="btn" id="sfxBtn" type="button" aria-pressed="true">Effects on</button>
+          </div>
+        </div>
       </div>
 
       <div class="card">
@@ -233,7 +243,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   const TOWERS = {
     diet: { name: 'Healthy diet', cost: 50, range: 2.4, dmg: 10, rate: 0.55, color: '#8fd16a', role: 'Fast, single target',
       fact: 'A mostly plant-based, minimally processed diet with less salt and sugar eases the load on blood pressure, blood sugar and the kidneys.' },
-    flush: { name: 'Hydration', cost: 80, range: 2.6, dmg: 7, rate: 1.15, splash: 0.95, color: '#6fb6e8', role: 'Splash damage',
+    flush: { name: 'Hydration', cost: 80, range: 5.2, dmg: 7, rate: 3.45, splash: 1.0, color: '#6fb6e8', role: 'Long range · splash',
       fact: 'Drinking to thirst, and more in hot weather, protects against dehydration, a common trigger of acute kidney injury.' },
     reg: { name: 'BP control', cost: 70, range: 2.1, dmg: 3, rate: 0.9, slow: 0.45, slowDur: 1.4, color: '#c79be6', role: 'Slows what it hits',
       fact: 'Keeping blood pressure in range protects the kidney’s small arteries. Regular measurement catches a rise early.' }
@@ -260,6 +270,120 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   };
   const ETYPES = ['salt', 'sugar', 'dehyd', 'pain', 'smoke', 'obese', 'hyp', 'dia'];
   const SMOKE_R = 1.5 * C, SMOKE_SLOW = 1.7, HYDRATION_BONUS = 3;
+
+  // ---------- Sound ----------
+  // Everything is synthesised with Web Audio. Music: a calm A-minor loop (Am–F–C–G) at 76 bpm over a soft
+  // "lub-dub" heartbeat; a light hi-hat layer joins while a wave is running.
+  const SFX = (() => {
+    let ac = null, master, musicBus, sfxBus, noiseBuf, timer = null, nextT = 0, stepN = 0;
+    let musicOn = true, sfxOn = true, intensity = 0, playing = false;
+    const last = {};
+    try { const p = JSON.parse(localStorage.getItem('rtd-sound') || '{}'); if (p.m === false) musicOn = false; if (p.s === false) sfxOn = false; } catch (e) {}
+    const save = () => { try { localStorage.setItem('rtd-sound', JSON.stringify({ m: musicOn, s: sfxOn })); } catch (e) {} };
+    const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+
+    function init() {
+      if (ac) { if (ac.state === 'suspended') ac.resume().catch(() => {}); return; }
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      try { ac = new AC(); } catch (e) { ac = null; return; }
+      master = ac.createGain(); master.gain.value = 0.9; master.connect(ac.destination);
+      musicBus = ac.createGain(); musicBus.gain.value = musicOn ? 0.55 : 0; musicBus.connect(master);
+      sfxBus = ac.createGain(); sfxBus.gain.value = sfxOn ? 0.6 : 0; sfxBus.connect(master);
+      noiseBuf = ac.createBuffer(1, ac.sampleRate, ac.sampleRate);
+      const d = noiseBuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+    }
+    function env(g, t, a, peak, dur) {
+      g.gain.setValueAtTime(0.0001, t);
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0002, peak), t + a);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + a + dur);
+    }
+    function tone(type, f0, f1, dur, vol, t, dest, a = 0.005) {
+      const o = ac.createOscillator(), g = ac.createGain();
+      o.type = type; o.frequency.setValueAtTime(f0, t);
+      if (f1) o.frequency.exponentialRampToValueAtTime(f1, t + dur);
+      env(g, t, a, vol, dur); o.connect(g); g.connect(dest || sfxBus);
+      o.start(t); o.stop(t + a + dur + 0.05);
+    }
+    function noise(dur, vol, ftype, freq, t, dest, q = 1, a = 0.003) {
+      const s = ac.createBufferSource(), f = ac.createBiquadFilter(), g = ac.createGain();
+      s.buffer = noiseBuf; f.type = ftype; f.frequency.value = freq; f.Q.value = q;
+      env(g, t, a, vol, dur); s.connect(f); f.connect(g); g.connect(dest || sfxBus);
+      s.start(t, Math.random() * 0.5); s.stop(t + a + dur + 0.05);
+    }
+    // ---- music ----
+    const BPM = 76, E = 60 / BPM / 2;
+    const PROG = [[57, 60, 64, 45], [53, 57, 60, 41], [55, 60, 64, 48], [55, 59, 62, 43]];
+    const ARP = [0, 1, 2, 1, 0, 2, 1, 2];
+    function pad(notes, t, dur) {
+      const f = ac.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 1100; f.connect(musicBus);
+      for (const m of notes) for (const det of [-5, 5]) {
+        const o = ac.createOscillator(), g = ac.createGain();
+        o.type = 'triangle'; o.frequency.value = mtof(m); o.detune.value = det;
+        g.gain.setValueAtTime(0.0001, t);
+        g.gain.exponentialRampToValueAtTime(0.03, t + 0.9);
+        g.gain.setValueAtTime(0.03, t + dur - 0.6);
+        g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.4);
+        o.connect(g); g.connect(f); o.start(t); o.stop(t + dur + 0.5);
+      }
+    }
+    function beat(s, t) {
+      const bar = Math.floor(s / 8) % 4, pos = s % 8, ch = PROG[bar];
+      if (pos === 0) {
+        pad(ch.slice(0, 3), t, E * 8);
+        tone('sine', mtof(ch[3]), 0, E * 7, 0.09, t, musicBus, 0.04);
+      }
+      if (pos === 0 || (intensity && pos === 4)) {   // heartbeat: lub-dub
+        tone('sine', 62, 44, 0.16, 0.22, t, musicBus, 0.004);
+        tone('sine', 58, 40, 0.13, 0.15, t + 0.2, musicBus, 0.004);
+      }
+      const m = ch[ARP[pos]] + 12;
+      tone('triangle', mtof(m), 0, E * 0.9, intensity ? 0.035 : 0.025, t, musicBus, 0.01);
+      if (intensity && pos % 2 === 1) noise(0.04, 0.025, 'highpass', 7000, t, musicBus);
+    }
+    function startMusic() {
+      if (!ac || playing) return;
+      playing = true; nextT = ac.currentTime + 0.1; stepN = 0;
+      timer = setInterval(() => {
+        if (!ac) return;
+        while (nextT < ac.currentTime + 0.35) { beat(stepN, nextT); nextT += E; stepN++; }
+      }, 90);
+    }
+    function stopMusic() { playing = false; if (timer) clearInterval(timer); timer = null; }
+    // ---- effects ----
+    const GAP = { kill: 0.05, shot_diet: 0.06, shot_flush: 0.08, shot_reg: 0.08, splash: 0.07, leak: 0.12, place: 0.05 };
+    const FX = {
+      shot_diet: t => { noise(0.035, 0.12, 'highpass', 2600, t); tone('square', 700, 380, 0.03, 0.025, t); },        // crunchy bite
+      shot_flush: t => tone('sine', 620, 170, 0.2, 0.16, t, null, 0.01),                                                // water bloop
+      splash: t => { noise(0.28, 0.14, 'bandpass', 900, t, null, 0.8, 0.01); tone('sine', 300, 110, 0.18, 0.06, t); },  // splash
+      shot_reg: t => tone('sine', 988, 0, 0.07, 0.07, t, null, 0.004),                                                  // monitor beep
+      kill: t => { const n = [84, 86, 88, 91, 93][Math.floor(Math.random() * 5)]; tone('triangle', mtof(n), 0, 0.12, 0.05, t, null, 0.003); },
+      killBig: t => { tone('triangle', mtof(76), 0, 0.25, 0.08, t); tone('triangle', mtof(83), 0, 0.35, 0.07, t + 0.09); tone('sine', 110, 70, 0.3, 0.12, t); },
+      split: t => { tone('sine', 300, 600, 0.08, 0.1, t); noise(0.06, 0.06, 'bandpass', 1500, t); },
+      leak: t => { tone('sine', 90, 45, 0.35, 0.3, t, null, 0.004); noise(0.15, 0.06, 'lowpass', 400, t); },
+      place: t => { tone('triangle', 520, 0, 0.06, 0.08, t); tone('triangle', 780, 0, 0.08, 0.06, t + 0.05); },
+      upgrade: t => [60, 64, 67, 72].forEach((m, i) => tone('triangle', mtof(m + 12), 0, 0.1, 0.07, t + i * 0.05)),
+      sell: t => { tone('triangle', 660, 0, 0.06, 0.07, t); tone('triangle', 440, 0, 0.09, 0.06, t + 0.06); },
+      wave: t => { noise(0.6, 0.05, 'bandpass', 600, t, null, 0.6, 0.45); tone('sine', 220, 440, 0.6, 0.06, t, null, 0.3); },
+      stage: t => [69, 72, 76, 81, 84].forEach((m, i) => tone('triangle', mtof(m), 0, 0.22, 0.08, t + i * 0.09)),
+      win: t => [60, 64, 67, 72, 76, 79, 84].forEach((m, i) => tone('triangle', mtof(m), 0, 0.3, 0.09, t + i * 0.1)),
+      lose: t => [64, 60, 57, 52].forEach((m, i) => tone('sine', mtof(m), 0, 0.4, 0.1, t + i * 0.22))
+    };
+    return {
+      init, startMusic, stopMusic,
+      play(name) {
+        if (!ac || !sfxOn || !FX[name]) return;
+        const t = ac.currentTime, g = GAP[name] || 0;
+        if (last[name] && t - last[name] < g) return;
+        last[name] = t; FX[name](t + 0.005);
+      },
+      setIntensity(v) { intensity = v ? 1 : 0; },
+      duck(on) { if (musicBus && musicOn) musicBus.gain.setTargetAtTime(on ? 0.12 : 0.55, ac.currentTime, 0.15); },
+      toggleMusic() { musicOn = !musicOn; save(); if (musicBus) musicBus.gain.setTargetAtTime(musicOn ? 0.55 : 0, ac.currentTime, 0.1); return musicOn; },
+      toggleSfx() { sfxOn = !sfxOn; save(); if (sfxBus) sfxBus.gain.setTargetAtTime(sfxOn ? 0.6 : 0, ac.currentTime, 0.05); return sfxOn; },
+      get musicOn() { return musicOn; }, get sfxOn() { return sfxOn; }
+    };
+  })();
 
   // ---------- Map generation ----------
   const rint = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -573,7 +697,18 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     speedBtns.push(b); $('speed').appendChild(b);
   }
   const pauseBtn = document.createElement('button'); pauseBtn.type = 'button'; pauseBtn.className = 'pause'; pauseBtn.textContent = 'Pause';
-  pauseBtn.addEventListener('click', () => { if (S.started && !S.over) S.paused = !S.paused; });
+  pauseBtn.addEventListener('click', () => { if (S.started && !S.over) { S.paused = !S.paused; SFX.duck(S.paused); } });
+  const musicBtn = $('musicBtn'), sfxBtn = $('sfxBtn');
+  const soundLabels = () => {
+    musicBtn.textContent = SFX.musicOn ? 'Music on' : 'Music off'; musicBtn.setAttribute('aria-pressed', String(SFX.musicOn));
+    sfxBtn.textContent = SFX.sfxOn ? 'Effects on' : 'Effects off'; sfxBtn.setAttribute('aria-pressed', String(SFX.sfxOn));
+  };
+  musicBtn.addEventListener('click', () => { SFX.init(); SFX.toggleMusic(); if (S.started) SFX.startMusic(); soundLabels(); });
+  sfxBtn.addEventListener('click', () => { SFX.init(); SFX.toggleSfx(); soundLabels(); SFX.play('place'); });
+  soundLabels();
+  // Browsers only allow audio after the player interacts, so wake it on the first tap or key.
+  window.addEventListener('pointerdown', () => SFX.init(), { passive: true });
+  window.addEventListener('keydown', () => SFX.init());
   $('speed').appendChild(pauseBtn);
 
   $('auto').addEventListener('change', e => {
@@ -606,6 +741,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     overlay.hidden = false;
     $('go').addEventListener('click', () => {
       overlay.hidden = true; S.started = true;
+      SFX.init(); SFX.startMusic();
       S.banner = { title: 'Stage 1 of 5', sub: `Wave 1 of 25 · ${MAP.turns}-turn vessel`, t: 2.4 };
       if (autoPref) S.autoT = 2.4;
     });
@@ -632,7 +768,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       <p class="note">Wave ${reached} of 25 reached · ${S.leaked} threat${S.leaked === 1 ? '' : 's'} reached the kidney</p>
       <button class="btn primary" id="again" type="button">Play again</button>`;
     overlay.hidden = false;
-    $('again').addEventListener('click', () => { reset(); S.started = true; overlay.hidden = true;
+    $('again').addEventListener('click', () => { reset(); S.started = true; overlay.hidden = true; SFX.init(); SFX.startMusic();
       S.banner = { title: 'Stage 1 of 5', sub: `Wave 1 of 25 · ${MAP.turns}-turn vessel`, t: 2.4 };
       if (autoPref) S.autoT = 2.4; });
     $('again').focus();
@@ -661,6 +797,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
         S.coins -= d.cost;
         S.towers.push({ type: S.build, c: cell.c, r: cell.r, x: (cell.c + .5) * C, y: (cell.r + .5) * C, level: 1, cd: 0, spent: d.cost, kick: 0 });
         if (S.coins < d.cost) S.build = null;
+        SFX.play('place');
         panelKey = '';
       }
       return;
@@ -678,6 +815,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     if (!S.started || S.inWave || S.over) return;
     const n = waveNo(), w = buildWave(n, S.stage, S.waveInStage + 1);
     S.queue = w.q; S.mult = w.mult; S.spawnT = 0.6; S.inWave = true; S.autoT = -1;
+    SFX.setIntensity(true); SFX.play('wave');
     S.banner = { title: `Wave ${S.waveInStage + 1} of 5`, sub: `Stage ${S.stage} · wave ${n} of 25`, t: 1.8 };
   }
 
@@ -709,7 +847,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       const p = posAt(e.dist); e.x = p.x; e.y = p.y;
       if (e.dist >= MAP.total) {
         e.dead = true; S.leaked++;
-        S.egfr = Math.max(0, S.egfr - e.d.leak); S.kHit = 0.4;
+        S.egfr = Math.max(0, S.egfr - e.d.leak); S.kHit = 0.4; SFX.play('leak');
         if (S.egfr < 15) { end(false); return; }
       }
     }
@@ -722,6 +860,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       for (const e of S.enemies) if (!e.dead && Math.hypot(e.x - t.x, e.y - t.y) <= st.range && (!best || e.dist > best.dist)) best = e;
       if (!best) continue;
       t.cd = st.rate * (t.smoked ? SMOKE_SLOW : 1); t.kick = 0.15;
+      SFX.play('shot_' + t.type);
       S.shots.push({ x: t.x, y: t.y, tg: best, dmg: st.dmg, splash: st.splash, slow: st.slow, slowDur: st.slowDur, type: t.type, color: TOWERS[t.type].color, spd: t.type === 'flush' ? 340 : 480 });
     }
     for (const s of S.shots) {
@@ -732,6 +871,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
         if (s.splash) {
           for (const e of S.enemies) if (!e.dead && Math.hypot(e.x - s.tg.x, e.y - s.tg.y) <= s.splash) hurt(e, s.dmg, s.type);
           S.rings.push({ x: s.tg.x, y: s.tg.y, r: s.splash, t: 0.3, color: s.color });
+          SFX.play('splash');
         } else hurt(s.tg, s.dmg, s.type);
         if (s.slow) { s.tg.slowUntil = S.time + s.slowDur; s.tg.slowMul = 1 - s.slow; }
       } else { s.x += dx / dist * mv; s.y += dy / dist * mv; }
@@ -739,7 +879,8 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     const born = [];
     for (const e of S.enemies) if (!e.dead && e.hp <= 0) {
       e.dead = true; S.coins += e.d.reward; S.kills[e.type]++; S.score += e.d.pts;
-      if (e.type === 'obese') ['salt', 'sugar', 'salt', 'sugar'].forEach((k, i) => spawn(k, e.dist - i * 14, born));
+      SFX.play(e.d.r >= 16 ? 'killBig' : 'kill');
+      if (e.type === 'obese') { SFX.play('split'); ['salt', 'sugar', 'salt', 'sugar'].forEach((k, i) => spawn(k, e.dist - i * 14, born)); }
     }
     S.enemies = S.enemies.filter(e => !e.dead).concat(born);
     S.shots = S.shots.filter(s => !s.done);
@@ -751,13 +892,14 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
 
   function waveCleared() {
     const n = waveNo();
-    S.inWave = false; S.waveInStage++; S.coins += 20 + n * 3;
+    S.inWave = false; S.waveInStage++; S.coins += 20 + n * 3; SFX.setIntensity(false);
     if (S.waveInStage >= PER_STAGE) {
       if (S.stage >= STAGES) { end(true); return; }
       const back = S.towers.reduce((a, t) => a + t.spent, 0);
       S.coins += back; S.towers = []; S.sel = null; S.build = null; S.shots = [];
       S.stage++; S.waveInStage = 0;
       MAP = genMap(TURNS[S.stage - 1]);
+      SFX.play('stage');
       S.banner = { title: `Stage ${S.stage - 1} cleared`, sub: `New ${MAP.turns}-turn vessel · ${back} energy refunded from towers`, t: 3 };
       panelKey = '';
       if (autoPref) S.autoT = 3.2;
@@ -767,6 +909,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   function end(won) {
     if (S.over) return;
     S.over = true; S.inWave = false; S.build = null; S.sel = null; S.autoT = -1;
+    SFX.setIntensity(false); SFX.play(won ? 'win' : 'lose');
     showScore(won);
   }
 
@@ -947,8 +1090,8 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
           <button class="btn" style="flex:1" id="up" type="button" ${max || S.coins < cost ? 'disabled' : ''}>${max ? 'Max level' : `Upgrade · ${cost}`}</button>
           <button class="btn" style="flex:1" id="sell" type="button">Sell · +${refund(t)}</button>
         </div>`;
-      $('up').addEventListener('click', () => { const c = upCost(t); if (t.level < 3 && S.coins >= c) { S.coins -= c; t.spent += c; t.level++; panelKey = ''; } });
-      $('sell').addEventListener('click', () => { S.coins += refund(t); S.towers = S.towers.filter(x => x !== t); S.sel = null; panelKey = ''; });
+      $('up').addEventListener('click', () => { const c = upCost(t); if (t.level < 3 && S.coins >= c) { S.coins -= c; t.spent += c; t.level++; panelKey = ''; SFX.play('upgrade'); } });
+      $('sell').addEventListener('click', () => { S.coins += refund(t); S.towers = S.towers.filter(x => x !== t); S.sel = null; panelKey = ''; SFX.play('sell'); });
       return;
     }
     if (S.fact) {

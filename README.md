@@ -10,7 +10,8 @@ Open `index.html` in any modern browser. No build step or dependencies.
 
 - **5 stages × 5 waves = 25 waves.** Each stage generates a new vessel map with more turns: 2, 4, 6, 8, then 10. Towers are refunded in full when the map changes.
 - **Health:** kidney function shown as eGFR, using the KDIGO stage bands (G1 ≥90 to G5 <15). The game ends if eGFR falls below 15.
-- **Towers:** Healthy diet (fast, single target), Hydration (splash), BP control (slows).
+- **Towers:** Healthy diet (fast, single target), Hydration (long range, slow, splash), BP control (slows).
+- **Sound:** synthesised in the browser with Web Audio (background music and effects), with separate music and effects toggles.
 - **Enemies and score points:**
 
 | Enemy | Role | Points |
