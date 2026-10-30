@@ -250,9 +250,16 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     hyp: { name: 'Hypertension', short: 'Boss · armoured', hp: 260, speed: 34, reward: 30, leak: 10, armor: 3, r: 17, pts: 3,
       fact: 'High blood pressure scars the kidney’s small arteries, and a damaged kidney raises pressure further. It is a leading cause of kidney failure.' },
     dia: { name: 'Diabetes', short: 'Boss · heavily armoured', hp: 380, speed: 26, reward: 35, leak: 12, armor: 5, r: 19, pts: 3,
-      fact: 'Diabetes is the leading cause of kidney failure. In Singapore it accounts for about 2 in 3 new cases. Yearly blood and urine checks catch damage early.' }
+      fact: 'Diabetes is the leading cause of kidney failure. In Singapore it accounts for about 2 in 3 new cases. Yearly blood and urine checks catch damage early.' },
+    dehyd: { name: 'Dehydration', short: 'Very fast · fragile', hp: 10, speed: 150, reward: 4, leak: 3, armor: 0, r: 9, pts: 1,
+      fact: 'Losing fluid through heat, heavy sweating, vomiting or diarrhoea can cause acute kidney injury. Drink to thirst, and more in hot weather. Hydration towers deal triple damage to it.' },
+    smoke: { name: 'Smoking', short: 'Weakens towers · hides others', hp: 60, speed: 46, reward: 8, leak: 3, armor: 0, r: 12, pts: 2,
+      fact: 'Smoking damages blood vessels, speeds up kidney decline and raises heart risk. Its smoke slows nearby towers and hides the enemies travelling inside it.' },
+    obese: { name: 'Obesity', short: 'Mini-boss · splits', hp: 150, speed: 30, reward: 15, leak: 6, armor: 1, r: 16, pts: 3,
+      fact: 'Excess weight drives both diabetes and high blood pressure and adds to the kidneys’ workload. When stopped, it breaks apart into salt and sugar.' }
   };
-  const ETYPES = ['salt', 'sugar', 'pain', 'hyp', 'dia'];
+  const ETYPES = ['salt', 'sugar', 'dehyd', 'pain', 'smoke', 'obese', 'hyp', 'dia'];
+  const SMOKE_R = 1.5 * C, SMOKE_SLOW = 1.7, HYDRATION_BONUS = 3;
 
   // ---------- Map generation ----------
   const rint = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
@@ -427,6 +434,40 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       g.beginPath(); g.arc(0, 0, r * p, 0, Math.PI * 2); g.fill(); g.stroke();
       g.fillStyle = '#2a1012'; g.font = `800 ${Math.round(r * 0.8)}px "JetBrains Mono", monospace`;
       g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('BP', 0, 1);
+    } else if (type === 'dehyd') {
+      // a dried-out, cracked droplet
+      g.fillStyle = '#e3a463';
+      g.beginPath(); g.moveTo(0, -r * 1.25);
+      g.bezierCurveTo(r * 0.95, -r * 0.1, r * 0.95, r * 0.95, 0, r * 0.95);
+      g.bezierCurveTo(-r * 0.95, r * 0.95, -r * 0.95, -r * 0.1, 0, -r * 1.25);
+      g.closePath(); g.fill(); g.stroke();
+      g.strokeStyle = '#5a3415'; g.lineWidth = 1.5;
+      g.beginPath(); g.moveTo(-r * 0.05, -r * 0.7); g.lineTo(r * 0.2, -r * 0.25); g.lineTo(-r * 0.15, r * 0.1); g.lineTo(r * 0.15, r * 0.6); g.stroke();
+      g.beginPath(); g.moveTo(r * 0.2, -r * 0.25); g.lineTo(r * 0.5, -r * 0.05); g.stroke();
+    } else if (type === 'smoke') {
+      // cigarette with a lit tip and a curl of smoke
+      g.rotate(-0.45);
+      const L = r * 2.4, h = r * 0.55, x0 = -L / 2;
+      g.fillStyle = '#f4f1ec'; g.fillRect(x0, -h / 2, L, h);
+      g.fillStyle = '#d98b3a'; g.fillRect(x0, -h / 2, L * 0.3, h);
+      g.fillStyle = '#ff6b3d'; g.fillRect(x0 + L - r * 0.28, -h / 2, r * 0.28, h);
+      g.strokeRect(x0, -h / 2, L, h);
+      g.strokeStyle = 'rgba(200,190,195,0.85)'; g.lineWidth = 1.6; g.lineCap = 'round';
+      const sx = x0 + L;
+      g.beginPath(); g.moveTo(sx, -h); g.bezierCurveTo(sx + r * 0.5, -r * 0.9, sx - r * 0.2, -r * 1.3, sx + r * 0.3, -r * 1.8); g.stroke();
+    } else if (type === 'obese') {
+      // a round body cinched by a measuring tape
+      const p = 1 + Math.sin(t * 3) * 0.04;
+      g.scale(p, 1 / p);
+      g.fillStyle = '#e0b48a'; g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2); g.fill(); g.stroke();
+      g.save(); g.beginPath(); g.arc(0, 0, r - 1, 0, Math.PI * 2); g.clip();
+      g.fillStyle = '#f2c94c'; g.fillRect(-r, -r * 0.2, r * 2, r * 0.42);
+      g.strokeStyle = P.ink; g.lineWidth = 1;
+      for (let i = -r + 3; i < r; i += 4) { g.beginPath(); g.moveTo(i, -r * 0.2); g.lineTo(i, -r * 0.2 + (Math.round(i) % 8 === 0 ? 6 : 3.5)); g.stroke(); }
+      g.restore();
+      g.strokeStyle = P.ink; g.lineWidth = 1.8;
+      g.beginPath(); g.moveTo(-r, -r * 0.2); g.lineTo(r, -r * 0.2); g.moveTo(-r, r * 0.22); g.lineTo(r, r * 0.22); g.stroke();
+      g.fillStyle = '#3e2c31'; g.fillRect(-r * 0.12, -r * 0.3, r * 0.24, r * 0.62);
     } else {
       const p = 1 + Math.sin(t * 4) * 0.06;
       g.strokeStyle = '#d96aa0'; g.lineWidth = 2; g.globalAlpha = 0.5;
@@ -460,6 +501,10 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     grp('salt', 5 + n, 0.7);
     if (n >= 2) grp('sugar', 2 + Math.floor(n * 0.6), 0.85);
     if (n >= 3) grp('pain', 1 + Math.floor(n * 0.55), 0.45);
+    // one new threat per stage from stage 2: dehydration, then smoking, then obesity
+    if (n >= 6) grp('dehyd', 2 + Math.floor((n - 6) * 0.5), 0.35);
+    if (n >= 11) grp('smoke', 1 + Math.floor((n - 11) / 3), 1.6);
+    if (n >= 16) grp('obese', 1 + Math.floor((n - 16) / 4), 2.2);
     const q = [];
     while (groups.some(g => g.length)) for (const g of groups) if (g.length) q.push(g.shift());
     if (w === PER_STAGE) for (let i = 0; i < stage; i++) q.push({ type: (stage + i) % 2 === 1 ? 'hyp' : 'dia', gap: 2.4 });
@@ -550,7 +595,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     ov.innerHTML = `
       <p class="eyebrow">A kidney health game</p>
       <h2>Renal <span>Tower</span> Defense</h2>
-      <p>Salt, sugar, painkillers and two boss diseases travel through the bloodstream toward the kidney. Build healthy habits along the vessel to stop them.</p>
+      <p>Salt, sugar, painkillers, dehydration, smoking, obesity and two boss diseases travel through the bloodstream toward the kidney. Build healthy habits along the vessel to stop them.</p>
       <div class="facts">
         <div><b>5</b><span>Stages</span></div>
         <div><b>5</b><span>Waves each</span></div>
@@ -637,12 +682,16 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   }
 
   // ---------- Simulation ----------
-  function spawn(type) {
-    const d = ENEMIES[type], hp = Math.round(d.hp * S.mult);
-    S.enemies.push({ type, d, hp, max: hp, dist: 0, slowUntil: 0, slowMul: 1, x: MAP.wp[0].x, y: MAP.wp[0].y, spin: Math.random() * 6 });
+  function spawn(type, dist = 0, into = S.enemies) {
+    const d = ENEMIES[type], hp = Math.round(d.hp * S.mult), p = posAt(Math.max(0, dist));
+    into.push({ type, d, hp, max: hp, dist: Math.max(0, dist), slowUntil: 0, slowMul: 1, x: p.x, y: p.y, spin: Math.random() * 6 });
     if (!S.seen.has(type)) { S.seen.add(type); if (!S.sel) { S.fact = { kind: 'enemy', key: type }; panelKey = ''; } }
   }
-  const hurt = (e, dmg) => { e.hp -= Math.max(1, dmg - e.d.armor); };
+  const hurt = (e, dmg, src) => {
+    const bonus = src === 'flush' && e.type === 'dehyd' ? HYDRATION_BONUS : 1;
+    e.hp -= Math.max(1, dmg * bonus - e.d.armor);
+  };
+  const smokedAt = (x, y) => S.enemies.some(e => e.type === 'smoke' && !e.dead && Math.hypot(e.x - x, e.y - y) <= SMOKE_R);
 
   function step(dt) {
     S.time += dt;
@@ -666,12 +715,13 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     }
     for (const t of S.towers) {
       t.cd -= dt; t.kick = Math.max(0, t.kick - dt);
+      t.smoked = smokedAt(t.x, t.y);
       if (t.cd > 0) continue;
       const st = stats(t);
       let best = null;
       for (const e of S.enemies) if (!e.dead && Math.hypot(e.x - t.x, e.y - t.y) <= st.range && (!best || e.dist > best.dist)) best = e;
       if (!best) continue;
-      t.cd = st.rate; t.kick = 0.15;
+      t.cd = st.rate * (t.smoked ? SMOKE_SLOW : 1); t.kick = 0.15;
       S.shots.push({ x: t.x, y: t.y, tg: best, dmg: st.dmg, splash: st.splash, slow: st.slow, slowDur: st.slowDur, type: t.type, color: TOWERS[t.type].color, spd: t.type === 'flush' ? 340 : 480 });
     }
     for (const s of S.shots) {
@@ -680,16 +730,18 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       if (dist <= mv + s.tg.d.r * 0.5) {
         s.done = true;
         if (s.splash) {
-          for (const e of S.enemies) if (!e.dead && Math.hypot(e.x - s.tg.x, e.y - s.tg.y) <= s.splash) hurt(e, s.dmg);
+          for (const e of S.enemies) if (!e.dead && Math.hypot(e.x - s.tg.x, e.y - s.tg.y) <= s.splash) hurt(e, s.dmg, s.type);
           S.rings.push({ x: s.tg.x, y: s.tg.y, r: s.splash, t: 0.3, color: s.color });
-        } else hurt(s.tg, s.dmg);
+        } else hurt(s.tg, s.dmg, s.type);
         if (s.slow) { s.tg.slowUntil = S.time + s.slowDur; s.tg.slowMul = 1 - s.slow; }
       } else { s.x += dx / dist * mv; s.y += dy / dist * mv; }
     }
+    const born = [];
     for (const e of S.enemies) if (!e.dead && e.hp <= 0) {
       e.dead = true; S.coins += e.d.reward; S.kills[e.type]++; S.score += e.d.pts;
+      if (e.type === 'obese') ['salt', 'sugar', 'salt', 'sugar'].forEach((k, i) => spawn(k, e.dist - i * 14, born));
     }
-    S.enemies = S.enemies.filter(e => !e.dead);
+    S.enemies = S.enemies.filter(e => !e.dead).concat(born);
     S.shots = S.shots.filter(s => !s.done);
     for (const r of S.rings) r.t -= dt;
     S.rings = S.rings.filter(r => r.t > 0);
@@ -783,6 +835,10 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     ctx.beginPath(); ctx.roundRect(-23, -23, 46, 46, 10); ctx.fill(); ctx.stroke();
     towerIcon(ctx, t.type, 17, t.type === 'reg' ? 0.5 + Math.sin(S.time * 2.4 + t.x) * 0.35 : null);
     ctx.restore();
+    if (!ghost && t.smoked) {
+      ctx.fillStyle = 'rgba(150,140,145,0.5)';
+      ctx.beginPath(); ctx.roundRect(t.x - 23, t.y - 23, 46, 46, 10); ctx.fill();
+    }
     if (!ghost) for (let i = 0; i < t.level; i++) {
       ctx.fillStyle = d.color; ctx.beginPath(); ctx.arc(t.x - 8 + i * 8, t.y + 29, 2.6, 0, Math.PI * 2); ctx.fill();
     }
@@ -792,6 +848,30 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     if (S.time < e.slowUntil) { ctx.strokeStyle = '#c79be6'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, e.d.r + 5, 0, Math.PI * 2); ctx.stroke(); }
     enemyShape(ctx, e.type, e.d.r, e.spin, S.time);
     ctx.restore();
+    if (e.hp < e.max) {
+      const w = Math.max(20, e.d.r * 2.2), f = Math.max(0, e.hp / e.max), top = e.y - e.d.r - 11;
+      ctx.fillStyle = 'rgba(23,17,19,0.85)'; ctx.fillRect(e.x - w / 2, top, w, 4);
+      ctx.fillStyle = f > 0.5 ? P.good : f > 0.25 ? P.warn : P.bad; ctx.fillRect(e.x - w / 2, top, w * f, 4);
+    }
+  }
+  // A drifting cloud drawn over the enemies, so whatever travels inside it is hard to see.
+  function drawSmoke(e) {
+    const t = S.time, seed = e.spin;
+    ctx.save();
+    ctx.fillStyle = 'rgba(128,120,126,0.10)';
+    ctx.beginPath(); ctx.arc(e.x, e.y, SMOKE_R, 0, Math.PI * 2); ctx.fill();
+    for (let i = 0; i < 9; i++) {
+      const a = i / 9 * Math.PI * 2 + t * 0.35 + seed, rr = SMOKE_R * (0.25 + 0.4 * ((i * 37) % 10) / 10);
+      const px = e.x + Math.cos(a) * rr, py = e.y + Math.sin(a) * rr * 0.85;
+      const size = 18 + ((i * 53) % 7) * 3 + Math.sin(t * 1.5 + i) * 3;
+      ctx.fillStyle = `rgba(${150 + (i % 3) * 12},${142 + (i % 3) * 12},${148 + (i % 3) * 12},0.62)`;
+      ctx.beginPath(); ctx.arc(px, py, size, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.fillStyle = 'rgba(160,152,158,0.7)';
+    ctx.beginPath(); ctx.arc(e.x, e.y, 22, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    // keep the smoker itself readable on top of its own cloud
+    ctx.save(); ctx.translate(e.x, e.y); enemyShape(ctx, 'smoke', e.d.r, e.spin, S.time); ctx.restore();
     if (e.hp < e.max) {
       const w = Math.max(20, e.d.r * 2.2), f = Math.max(0, e.hp / e.max), top = e.y - e.d.r - 11;
       ctx.fillStyle = 'rgba(23,17,19,0.85)'; ctx.fillRect(e.x - w / 2, top, w, 4);
@@ -822,6 +902,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       }
     }
     for (const e of S.enemies) drawEnemy(e);
+    for (const e of S.enemies) if (e.type === 'smoke') drawSmoke(e);
     drawKidney();
     for (const s of S.shots) drawShot(s);
     for (const r of S.rings) { ctx.globalAlpha = r.t / 0.3; ring(r.x, r.y, r.r, r.color); ctx.globalAlpha = 1; }

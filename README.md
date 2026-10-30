@@ -17,7 +17,10 @@ Open `index.html` in any modern browser. No build step or dependencies.
 |---|---|---|
 | Salt | Swarm | 1 |
 | Sugar | Sturdier swarm | 1 |
+| Dehydration | Very fast, fragile; Hydration deals triple damage (from stage 2) | 1 |
 | Painkiller | Fast | 2 |
+| Smoking | Smoke cloud slows nearby towers and hides enemies inside it (from stage 3) | 2 |
+| Obesity | Mini-boss; splits into salt and sugar when stopped (from stage 4) | 3 |
 | Hypertension | Boss | 3 |
 | Diabetes | Boss | 3 |
 
