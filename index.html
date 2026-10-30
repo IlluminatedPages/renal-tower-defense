@@ -1,0 +1,947 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
+</head>
+<body>
+<title>Renal Tower Defense</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: header with a full-width eGFR life bar, then the board with a control rail beside it (rail drops below on narrow screens).
+   Deliberate single dark theme: kidney-cortex neutrals with an amber accent; semantic stage colours for the life bar. */
+:root {
+  --bg: #171113;
+  --panel: #221a1d;
+  --panel-2: #2c2125;
+  --line: #3d2e33;
+  --fg: #f3e9e5;
+  --muted: #b5a29e;
+  --accent: #f0b44c;
+  --accent-ink: #2a1a06;
+  --good: #7cc6a4;
+  --warn: #e9c46a;
+  --orange: #ec8f4f;
+  --bad: #e2604f;
+  --diet: #8fd16a;
+  --flush: #6fb6e8;
+  --reg: #c79be6;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+.app {
+  max-width: 1260px; margin: 0 auto;
+  padding-block: 20px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: grid; gap: 14px;
+}
+header { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(26px, 4vw, 38px); line-height: 1.05; letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+h1 span { color: var(--accent); }
+.tag { color: var(--muted); margin: 4px 0 0; font-size: 14px; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px; }
+.stat { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; min-width: 88px; }
+.k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.stat .v { font-family: var(--mono); font-weight: 700; font-size: 20px; font-variant-numeric: tabular-nums; }
+.stat .v small { font-size: 12px; color: var(--muted); font-weight: 500; }
+
+/* eGFR life bar */
+.gfr { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px 10px; display: grid; gap: 8px; }
+.gfr-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.gfr-val { font-family: var(--mono); font-weight: 700; font-size: 22px; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 8px; }
+.pill { font-family: var(--mono); font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; color: var(--accent-ink); background: var(--good); }
+.track { position: relative; height: 20px; border-radius: 999px; background: var(--panel-2); overflow: hidden; border: 1px solid var(--line); }
+.fill { position: absolute; inset: 0 auto 0 0; width: 100%; background: var(--good); border-radius: 999px; transition: width .35s ease, background-color .35s ease; }
+.tick { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--bg); opacity: .7; }
+.bands { position: relative; height: 14px; font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+.bands span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.hit .fill { background: var(--bad) !important; }
+
+.main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
+@media (max-width: 920px) { .main { grid-template-columns: minmax(0, 1fr); } }
+.board { display: grid; gap: 12px; min-width: 0; }
+.stage { position: relative; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: var(--panel); }
+canvas#cv { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; touch-action: manipulation; cursor: crosshair; }
+
+.build { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 560px) { .build { grid-template-columns: minmax(0, 1fr); } }
+.tbtn {
+  font: inherit; color: var(--fg); text-align: left; background: var(--panel); border: 1px solid var(--line);
+  border-radius: 12px; padding: 8px 12px 8px 8px; cursor: pointer;
+  display: grid; grid-template-columns: 44px minmax(0, 1fr); gap: 0 10px; align-items: center;
+}
+.tbtn:hover:not(:disabled) { background: var(--panel-2); }
+.tbtn[aria-pressed="true"] { border-color: var(--accent); background: var(--panel-2); }
+.tbtn:disabled { opacity: .45; cursor: not-allowed; }
+.tbtn canvas { width: 44px; height: 44px; grid-row: span 2; }
+.tbtn .nm { font-weight: 700; display: flex; justify-content: space-between; gap: 8px; }
+.tbtn .cost { font-family: var(--mono); color: var(--accent); font-variant-numeric: tabular-nums; }
+.tbtn .rl { font-size: 12.5px; color: var(--muted); }
+.tbtn kbd { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+aside { display: grid; gap: 12px; min-width: 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 10px; }
+.card h2 { font-family: var(--display); font-size: 18px; font-weight: 700; margin: 0; }
+.eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--muted); margin: 0; }
+.card p { margin: 0; }
+.card ol { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.btn { font: inherit; font-weight: 700; border-radius: 10px; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg); padding: 9px 14px; cursor: pointer; }
+.btn:hover:not(:disabled) { border-color: var(--muted); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover:not(:disabled) { filter: brightness(1.08); }
+.btn.wide { width: 100%; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.switch { display: flex; align-items: center; gap: 10px; cursor: pointer; font-size: 14px; }
+.switch input { appearance: none; width: 38px; height: 22px; border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line); position: relative; cursor: pointer; flex: none; margin: 0; transition: background .2s; }
+.switch input::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: var(--muted); transition: transform .2s, background .2s; }
+.switch input:checked { background: var(--accent); border-color: var(--accent); }
+.switch input:checked::after { transform: translateX(16px); background: var(--accent-ink); }
+
+.seg { display: grid; grid-template-columns: repeat(5, 1fr) auto; gap: 4px; }
+.seg button { font: inherit; font-family: var(--mono); font-weight: 700; font-size: 13px; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); border-radius: 8px; padding: 6px 0; cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+.seg .pause { padding: 6px 10px; font-family: var(--body); }
+
+.elist { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.erow {
+  width: 100%; font: inherit; color: var(--fg); text-align: left; cursor: pointer;
+  display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  background: var(--panel-2); border: 1px solid transparent; border-radius: 10px; padding: 6px 10px 6px 6px;
+  transition: opacity .2s, border-color .2s;
+}
+.erow.idle { opacity: .42; }
+.erow.live { border-color: var(--line); }
+.erow canvas { width: 34px; height: 34px; }
+.erow .en { font-weight: 700; line-height: 1.2; }
+.erow .ed { font-size: 12px; color: var(--muted); line-height: 1.25; }
+.erow .ec { font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; line-height: 1.2; }
+.erow .ec b { font-size: 16px; display: block; }
+.erow .ec span { font-size: 11px; color: var(--muted); }
+
+dl.kv { margin: 0; display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; }
+dl.kv dt { color: var(--muted); }
+dl.kv dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+.note { font-size: 12px; color: var(--muted); margin: 0; }
+
+.overlay { position: absolute; inset: 0; display: grid; place-items: center; background: color-mix(in srgb, var(--bg) 86%, transparent); padding: 16px; overflow-y: auto; }
+.overlay .box { width: min(460px, 100%); text-align: center; display: grid; gap: 12px; justify-items: center; }
+.overlay h2 { font-family: var(--display); font-size: clamp(24px, 4.5vw, 40px); line-height: 1.05; margin: 0; text-wrap: balance; }
+.overlay h2 span { color: var(--accent); }
+.overlay p { margin: 0; color: var(--muted); }
+.overlay .facts { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.overlay .facts div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; }
+.overlay .facts b { display: block; font-family: var(--mono); font-size: 20px; color: var(--fg); }
+.overlay .facts span { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+table.score { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.score th, table.score td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+table.score th { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+table.score th:first-child, table.score td:first-child { text-align: left; }
+table.score td { font-family: var(--mono); }
+table.score td:first-child { font-family: var(--body); }
+table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; color: var(--accent); }
+@media (max-width: 700px) {
+  .overlay { position: fixed; z-index: 20;
+    padding: calc(16px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+}
+@media (max-width: 520px) { .overlay .box { gap: 8px; } table.score th, table.score td { padding: 4px 4px; font-size: 12.5px; } }
+</style>
+
+<div class="app">
+  <header>
+    <div>
+      <h1>Renal <span>Tower</span> Defense</h1>
+      <p class="tag">Stop threats in the bloodstream before they reach the kidney.</p>
+    </div>
+    <div class="stats">
+      <div class="stat"><div class="k">Score</div><div class="v" id="score">0</div></div>
+      <div class="stat"><div class="k">Energy</div><div class="v" id="coins">150</div></div>
+      <div class="stat"><div class="k">Stage</div><div class="v" id="stage">1 <small>/ 5</small></div></div>
+      <div class="stat"><div class="k">Wave</div><div class="v" id="wave">1 <small>/ 5</small></div></div>
+    </div>
+  </header>
+
+  <section class="gfr" id="gfr" aria-label="Kidney function">
+    <div class="gfr-head">
+      <div class="k">Kidney function · eGFR</div>
+      <div class="gfr-val"><span id="egfr">100</span><span class="pill" id="pill">G1</span></div>
+    </div>
+    <div class="track" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" id="track">
+      <div class="fill" id="fill"></div>
+      <div class="tick" style="left:15%"></div><div class="tick" style="left:30%"></div><div class="tick" style="left:45%"></div>
+      <div class="tick" style="left:60%"></div><div class="tick" style="left:90%"></div>
+    </div>
+    <div class="bands" aria-hidden="true">
+      <span style="left:7.5%">G5</span><span style="left:22.5%">G4</span><span style="left:37.5%">G3b</span>
+      <span style="left:52.5%">G3a</span><span style="left:75%">G2</span><span style="left:95%">G1</span>
+    </div>
+  </section>
+
+  <div class="main">
+    <div class="board">
+      <div class="stage">
+        <canvas id="cv" width="960" height="600" aria-label="Game board: a blood vessel winding across tissue toward the kidney"></canvas>
+        <div class="overlay" id="overlay"><div class="box" id="ov"></div></div>
+      </div>
+      <div class="build" id="build"></div>
+    </div>
+
+    <aside>
+      <div class="card">
+        <button class="btn primary wide" id="start" type="button">Start wave 1</button>
+        <label class="switch" for="auto"><input type="checkbox" id="auto"> Start the next wave automatically</label>
+        <div>
+          <div class="k" style="margin-bottom:6px">Speed</div>
+          <div class="seg" id="speed" role="group" aria-label="Game speed"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <p class="eyebrow">Enemies</p>
+        <ul class="elist" id="elist"></ul>
+        <p class="note">Field: on the board now. Next: still to come this wave. Tap one for details.</p>
+      </div>
+
+      <div class="card" id="panel"></div>
+      <p class="note">eGFR stages follow the real KDIGO bands (G1 ≥90 to G5 &lt;15). In the game the number is a score, not a medical reading.</p>
+    </aside>
+  </div>
+</div>
+
+<script>
+(() => {
+  // ---------- Constants ----------
+  const C = 60, COLS = 16, ROWS = 10, W = C * COLS, H = C * ROWS;
+  const STAGES = 5, PER_STAGE = 5, TOTAL_WAVES = STAGES * PER_STAGE, TURNS = [2, 4, 6, 8, 10];
+  const P = {
+    tissue: '#2a1c20', tissueDot: '#33232a', wall: '#4e1d23', lumen: '#b8434a', lumenEdge: '#8f3037',
+    grid: 'rgba(243,233,229,0.07)', ok: 'rgba(124,198,164,0.35)', no: 'rgba(226,96,79,0.35)',
+    fg: '#f3e9e5', ink: '#1d1517', good: '#7cc6a4', warn: '#e9c46a', bad: '#e2604f'
+  };
+
+  const TOWERS = {
+    diet: { name: 'Healthy diet', cost: 50, range: 2.4, dmg: 10, rate: 0.55, color: '#8fd16a', role: 'Fast, single target',
+      fact: 'A mostly plant-based, minimally processed diet with less salt and sugar eases the load on blood pressure, blood sugar and the kidneys.' },
+    flush: { name: 'Hydration', cost: 80, range: 1.9, dmg: 7, rate: 1.15, splash: 0.95, color: '#6fb6e8', role: 'Splash damage',
+      fact: 'Drinking to thirst, and more in hot weather, protects against dehydration, a common trigger of acute kidney injury.' },
+    reg: { name: 'BP control', cost: 70, range: 2.1, dmg: 3, rate: 0.9, slow: 0.45, slowDur: 1.4, color: '#c79be6', role: 'Slows what it hits',
+      fact: 'Keeping blood pressure in range protects the kidney’s small arteries. Regular measurement catches a rise early.' }
+  };
+  const ORDER = ['diet', 'flush', 'reg'];
+
+  const ENEMIES = {
+    salt: { name: 'Salt', short: 'Swarm', hp: 22, speed: 62, reward: 4, leak: 2, armor: 0, r: 9, pts: 1,
+      fact: 'Too much salt raises blood pressure. Guidance is under about 5 g of salt a day; sauces, stock and instant noodles add up quickly.' },
+    sugar: { name: 'Sugar', short: 'Sturdier swarm', hp: 34, speed: 52, reward: 5, leak: 2, armor: 0, r: 10, pts: 1,
+      fact: 'Persistently high blood sugar damages the glomerular filters over time. Sugary drinks are one of the easiest sources to cut.' },
+    pain: { name: 'Painkiller', short: 'Fast', hp: 16, speed: 108, reward: 5, leak: 3, armor: 0, r: 9, pts: 2,
+      fact: 'Regular use of NSAIDs such as ibuprofen, naproxen or diclofenac narrows the vessel feeding each glomerulus. Ask a doctor or pharmacist before taking them often.' },
+    hyp: { name: 'Hypertension', short: 'Boss · armoured', hp: 260, speed: 34, reward: 30, leak: 10, armor: 3, r: 17, pts: 3,
+      fact: 'High blood pressure scars the kidney’s small arteries, and a damaged kidney raises pressure further. It is a leading cause of kidney failure.' },
+    dia: { name: 'Diabetes', short: 'Boss · heavily armoured', hp: 380, speed: 26, reward: 35, leak: 12, armor: 5, r: 19, pts: 3,
+      fact: 'Diabetes is the leading cause of kidney failure. In Singapore it accounts for about 2 in 3 new cases. Yearly blood and urine checks catch damage early.' }
+  };
+  const ETYPES = ['salt', 'sugar', 'pain', 'hyp', 'dia'];
+
+  // ---------- Map generation ----------
+  const rint = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  let MAP;
+  function genMap(turns) {
+    const k = turns / 2;
+    for (let attempt = 0; attempt < 500; attempt++) {
+      // vertical runs sit in columns 1..11, at least 2 apart so towers fit between them
+      const extra = 10 - 2 * (k - 1), parts = new Array(k + 1).fill(0);
+      for (let i = 0; i < extra; i++) parts[rint(0, k)]++;
+      const cols = []; let c = 1 + parts[0];
+      cols.push(c);
+      for (let i = 1; i < k; i++) { c += 2 + parts[i]; cols.push(c); }
+      const rows = [rint(0, ROWS - 1)];
+      let ok = true;
+      for (let i = 1; i <= k; i++) {
+        const opts = [];
+        const lo = i === k ? 3 : 0, hi = i === k ? 6 : ROWS - 1;
+        for (let r = lo; r <= hi; r++) if (Math.abs(r - rows[i - 1]) >= 2) opts.push(r);
+        if (!opts.length) { ok = false; break; }
+        rows.push(opts[rint(0, opts.length - 1)]);
+      }
+      if (!ok) continue;
+      const cells = [[-1, rows[0]]];
+      for (let i = 0; i < k; i++) { cells.push([cols[i], rows[i]]); cells.push([cols[i], rows[i + 1]]); }
+      cells.push([13, rows[k]]);
+      return buildMap(cells, rows[k], turns);
+    }
+    return buildMap([[-1, 5], [6, 5], [6, 2], [9, 2], [9, 5], [13, 5]], 5, 4);
+  }
+  function buildMap(cells, endRow, turns) {
+    const kid = { x: 14.35 * C, y: (endRow + 0.5) * C, w: 150, h: 236, row: endRow };
+    const wp = cells.map(([c, r]) => ({ x: (c + .5) * C, y: (r + .5) * C }));
+    wp[wp.length - 1].x = kid.x - kid.w * 0.14;
+    const segs = []; let total = 0;
+    for (let i = 0; i < wp.length - 1; i++) {
+      const a = wp[i], b = wp[i + 1], len = Math.hypot(b.x - a.x, b.y - a.y);
+      segs.push({ a, b, len, start: total }); total += len;
+    }
+    const path = new Set();
+    for (let i = 0; i < cells.length - 1; i++) {
+      let [c, r] = cells[i]; const [c2, r2] = cells[i + 1];
+      const dc = Math.sign(c2 - c), dr = Math.sign(r2 - r);
+      for (;;) {
+        if (c >= 0 && c < COLS && r >= 0 && r < ROWS) path.add(c + ',' + r);
+        if (c === c2 && r === r2) break;
+        c += dc; r += dr;
+      }
+    }
+    const m = { wp, segs, total, path, kid, turns, bg: document.createElement('canvas') };
+    m.blocked = (c, r) => path.has(c + ',' + r) || (c >= 13 && r >= endRow - 2 && r <= endRow + 2);
+    paintBg(m);
+    return m;
+  }
+  function posAt(d) {
+    for (const s of MAP.segs) if (d <= s.start + s.len) {
+      const t = (d - s.start) / s.len;
+      return { x: s.a.x + (s.b.x - s.a.x) * t, y: s.a.y + (s.b.y - s.a.y) * t };
+    }
+    const l = MAP.wp[MAP.wp.length - 1]; return { x: l.x, y: l.y };
+  }
+  function paintBg(m) {
+    m.bg.width = W; m.bg.height = H;
+    const g = m.bg.getContext('2d');
+    g.fillStyle = P.tissue; g.fillRect(0, 0, W, H);
+    let seed = 11 + m.turns;
+    const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    g.fillStyle = P.tissueDot;
+    for (let i = 0; i < 520; i++) { g.beginPath(); g.arc(rnd() * W, rnd() * H, 1 + rnd() * 3.5, 0, Math.PI * 2); g.fill(); }
+    g.lineJoin = 'round'; g.lineCap = 'round';
+    const trace = () => { g.beginPath(); g.moveTo(m.wp[0].x, m.wp[0].y); for (let i = 1; i < m.wp.length; i++) g.lineTo(m.wp[i].x, m.wp[i].y); };
+    trace(); g.strokeStyle = P.wall; g.lineWidth = C * 0.8; g.stroke();
+    trace(); g.strokeStyle = P.lumenEdge; g.lineWidth = C * 0.62; g.stroke();
+    trace(); g.strokeStyle = P.lumen; g.lineWidth = C * 0.5; g.stroke();
+    g.strokeStyle = 'rgba(255,214,204,0.28)'; g.lineWidth = 2;
+    const keep = MAP; MAP = m;
+    for (let d = 30; d < m.total - 40; d += 70) {
+      const p = posAt(d), q = posAt(d + 6), ang = Math.atan2(q.y - p.y, q.x - p.x);
+      g.save(); g.translate(p.x, p.y); g.rotate(ang);
+      g.beginPath(); g.moveTo(-4, -6); g.lineTo(3, 0); g.lineTo(-4, 6); g.stroke(); g.restore();
+    }
+    MAP = keep;
+  }
+
+  // ---------- Icons ----------
+  function iconDiet(g, s) {
+    g.lineJoin = 'round';
+    g.fillStyle = '#8fd16a'; g.strokeStyle = P.ink; g.lineWidth = Math.max(1.5, s * 0.08);
+    g.beginPath(); g.moveTo(0, -s * 0.3);
+    g.bezierCurveTo(s * 0.5, -s * 0.62, s * 0.92, -s * 0.05, s * 0.45, s * 0.5);
+    g.bezierCurveTo(s * 0.25, s * 0.68, s * 0.08, s * 0.56, 0, s * 0.52);
+    g.bezierCurveTo(-s * 0.08, s * 0.56, -s * 0.25, s * 0.68, -s * 0.45, s * 0.5);
+    g.bezierCurveTo(-s * 0.92, -s * 0.05, -s * 0.5, -s * 0.62, 0, -s * 0.3);
+    g.closePath(); g.fill(); g.stroke();
+    g.strokeStyle = '#7a5434'; g.lineWidth = s * 0.1; g.lineCap = 'round';
+    g.beginPath(); g.moveTo(0, -s * 0.3); g.quadraticCurveTo(s * 0.04, -s * 0.55, s * 0.14, -s * 0.68); g.stroke();
+    g.fillStyle = '#4f9e3a'; g.beginPath(); g.ellipse(s * 0.34, -s * 0.56, s * 0.24, s * 0.1, -0.5, 0, Math.PI * 2); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.4)'; g.beginPath(); g.ellipse(-s * 0.27, -s * 0.02, s * 0.08, s * 0.18, 0.3, 0, Math.PI * 2); g.fill();
+  }
+  function iconWater(g, s) {
+    const top = -s * 0.62, bot = s * 0.62, tw = s * 0.48, bw = s * 0.33, wy = -s * 0.08;
+    const wAt = y => tw + (bw - tw) * ((y - top) / (bot - top));
+    g.fillStyle = '#6fb6e8';
+    g.beginPath(); g.moveTo(-wAt(wy), wy);
+    g.quadraticCurveTo(-wAt(wy) / 2, wy - s * 0.1, 0, wy); g.quadraticCurveTo(wAt(wy) / 2, wy + s * 0.1, wAt(wy), wy);
+    g.lineTo(bw, bot); g.lineTo(-bw, bot); g.closePath(); g.fill();
+    g.fillStyle = 'rgba(255,255,255,0.55)';
+    g.beginPath(); g.arc(-s * 0.1, s * 0.25, s * 0.05, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(s * 0.12, s * 0.1, s * 0.035, 0, Math.PI * 2); g.fill();
+    g.lineJoin = 'round';
+    g.strokeStyle = P.ink; g.lineWidth = Math.max(2.5, s * 0.16);
+    g.beginPath(); g.moveTo(-tw, top); g.lineTo(-bw, bot); g.lineTo(bw, bot); g.lineTo(tw, top); g.stroke();
+    g.strokeStyle = '#dff0fb'; g.lineWidth = Math.max(1.5, s * 0.08);
+    g.beginPath(); g.moveTo(-tw, top); g.lineTo(-bw, bot); g.lineTo(bw, bot); g.lineTo(tw, top); g.stroke();
+    g.strokeStyle = 'rgba(255,255,255,0.5)'; g.lineWidth = Math.max(1, s * 0.06);
+    g.beginPath(); g.moveTo(-tw * 0.62, top + s * 0.14); g.lineTo(-bw * 0.6, bot - s * 0.2); g.stroke();
+  }
+  function iconGauge(g, s, needle) {
+    const R = s * 0.66;
+    g.fillStyle = '#f3e9e5'; g.strokeStyle = P.ink; g.lineWidth = Math.max(1.5, s * 0.08);
+    g.beginPath(); g.arc(0, 0, R, 0, Math.PI * 2); g.fill(); g.stroke();
+    const band = [['#7cc6a4', 1.1, 1.4], ['#e9c46a', 1.4, 1.65], ['#e2604f', 1.65, 1.9]];
+    g.lineWidth = s * 0.16; g.lineCap = 'butt';
+    for (const [col, a, b] of band) { g.strokeStyle = col; g.beginPath(); g.arc(0, 0, R * 0.7, Math.PI * a, Math.PI * b); g.stroke(); }
+    g.strokeStyle = P.ink; g.lineWidth = Math.max(1, s * 0.05);
+    for (let i = 0; i <= 6; i++) {
+      const a = Math.PI * (1.1 + i * 0.8 / 6), c = Math.cos(a), sn = Math.sin(a);
+      g.beginPath(); g.moveTo(c * R * 0.88, sn * R * 0.88); g.lineTo(c * R * 0.98, sn * R * 0.98); g.stroke();
+    }
+    const a = Math.PI * (1.1 + 0.8 * (needle == null ? 0.3 : needle));
+    g.strokeStyle = '#c0392b'; g.lineWidth = Math.max(1.5, s * 0.09); g.lineCap = 'round';
+    g.beginPath(); g.moveTo(0, 0); g.lineTo(Math.cos(a) * R * 0.62, Math.sin(a) * R * 0.62); g.stroke();
+    g.fillStyle = P.ink; g.beginPath(); g.arc(0, 0, s * 0.09, 0, Math.PI * 2); g.fill();
+    // little heart under the needle
+    const hy = R * 0.42, hs = s * 0.13;
+    g.fillStyle = '#c0392b'; g.beginPath();
+    g.moveTo(0, hy + hs); g.bezierCurveTo(-hs * 2, hy - hs * 0.2, -hs * 0.6, hy - hs * 1.6, 0, hy - hs * 0.5);
+    g.bezierCurveTo(hs * 0.6, hy - hs * 1.6, hs * 2, hy - hs * 0.2, 0, hy + hs); g.fill();
+  }
+  function towerIcon(g, type, s, needle) {
+    if (type === 'diet') iconDiet(g, s); else if (type === 'flush') iconWater(g, s); else iconGauge(g, s, needle);
+  }
+  function hexPath(g, r, rot = 0) {
+    g.beginPath();
+    for (let i = 0; i < 6; i++) { const a = rot + i / 6 * Math.PI * 2; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
+    g.closePath();
+  }
+  function enemyShape(g, type, r, spin, t) {
+    g.lineJoin = 'round';
+    g.strokeStyle = P.ink; g.lineWidth = 1.8;
+    if (type === 'salt') {
+      g.rotate(spin);
+      const a = r * 0.82;
+      g.fillStyle = '#f4f1ec'; g.fillRect(-a, -a, a * 2, a * 2); g.strokeRect(-a, -a, a * 2, a * 2);
+      g.fillStyle = '#cfc8c1'; g.beginPath(); g.moveTo(a, -a); g.lineTo(a, a); g.lineTo(-a, a); g.closePath(); g.globalAlpha = 0.5; g.fill(); g.globalAlpha = 1;
+      g.strokeRect(-a, -a, a * 2, a * 2);
+    } else if (type === 'sugar') {
+      g.rotate(spin * 0.4);
+      g.fillStyle = '#f2a3c4'; hexPath(g, r); g.fill(); g.stroke();
+      g.strokeStyle = '#7a2a4f'; g.lineWidth = 1.6; hexPath(g, r * 0.48); g.stroke();
+    } else if (type === 'pain') {
+      g.rotate(spin * 0.5);
+      g.fillStyle = '#5cc6b8'; g.beginPath(); g.roundRect(-r * 1.3, -r * .62, r * 2.6, r * 1.24, r * .62); g.fill();
+      g.fillStyle = '#f4f1ec'; g.beginPath(); g.roundRect(0, -r * .62, r * 1.3, r * 1.24, [0, r * .62, r * .62, 0]); g.fill();
+      g.beginPath(); g.roundRect(-r * 1.3, -r * .62, r * 2.6, r * 1.24, r * .62); g.stroke();
+      g.beginPath(); g.moveTo(0, -r * .62); g.lineTo(0, r * .62); g.stroke();
+    } else if (type === 'hyp') {
+      const p = 1 + Math.sin(t * 6) * 0.1;
+      g.strokeStyle = '#ff6b5e'; g.lineWidth = 2; g.globalAlpha = 0.55;
+      g.beginPath(); g.arc(0, 0, r * 1.35 * p, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1;
+      g.fillStyle = '#ff6b5e'; g.strokeStyle = P.ink; g.lineWidth = 2;
+      g.beginPath(); g.arc(0, 0, r * p, 0, Math.PI * 2); g.fill(); g.stroke();
+      g.fillStyle = '#2a1012'; g.font = `800 ${Math.round(r * 0.8)}px "JetBrains Mono", monospace`;
+      g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('BP', 0, 1);
+    } else {
+      const p = 1 + Math.sin(t * 4) * 0.06;
+      g.strokeStyle = '#d96aa0'; g.lineWidth = 2; g.globalAlpha = 0.5;
+      g.beginPath(); g.arc(0, 0, r * 1.3 * p, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1;
+      g.rotate(spin * 0.15);
+      g.fillStyle = '#b8478a'; g.strokeStyle = P.ink; g.lineWidth = 2;
+      const offs = [[0, -r * 0.42], [-r * 0.46, r * 0.3], [r * 0.46, r * 0.3]];
+      for (const [x, y] of offs) { g.save(); g.translate(x, y); hexPath(g, r * 0.56); g.fill(); g.stroke(); g.strokeStyle = '#f2a3c4'; g.lineWidth = 1.4; hexPath(g, r * 0.26); g.stroke(); g.restore(); }
+    }
+  }
+  function iconCanvas(size, draw) {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), cv = document.createElement('canvas');
+    cv.width = size * dpr; cv.height = size * dpr;
+    const g = cv.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, size / 2 * dpr, size / 2 * dpr); draw(g);
+    return cv;
+  }
+
+  // ---------- Rules ----------
+  function stats(t) {
+    const d = TOWERS[t.type], l = t.level - 1;
+    return { dmg: d.dmg * (1 + 0.6 * l), range: (d.range + 0.25 * l) * C, rate: d.rate * (1 - 0.1 * l),
+      splash: d.splash ? d.splash * C : 0, slow: d.slow || 0, slowDur: d.slowDur || 0 };
+  }
+  const upCost = t => Math.round(TOWERS[t.type].cost * 0.8 * t.level);
+  const refund = t => Math.round(t.spent * 0.6);
+  const waveNo = () => (S.stage - 1) * PER_STAGE + S.waveInStage + 1;
+
+  function buildWave(n, stage, w) {
+    const groups = [];
+    const grp = (type, count, gap) => { const a = []; for (let i = 0; i < count; i++) a.push({ type, gap }); groups.push(a); };
+    grp('salt', 5 + n, 0.7);
+    if (n >= 2) grp('sugar', 2 + Math.floor(n * 0.6), 0.85);
+    if (n >= 3) grp('pain', 1 + Math.floor(n * 0.55), 0.45);
+    const q = [];
+    while (groups.some(g => g.length)) for (const g of groups) if (g.length) q.push(g.shift());
+    if (w === PER_STAGE) for (let i = 0; i < stage; i++) q.push({ type: (stage + i) % 2 === 1 ? 'hyp' : 'dia', gap: 2.4 });
+    return { q, mult: 1 + 0.11 * (n - 1) };
+  }
+  function stageOf(g) {
+    if (g >= 90) return ['G1', 'var(--good)'];
+    if (g >= 60) return ['G2', 'var(--good)'];
+    if (g >= 45) return ['G3a', 'var(--warn)'];
+    if (g >= 30) return ['G3b', 'var(--orange)'];
+    if (g >= 15) return ['G4', 'var(--bad)'];
+    return ['G5', 'var(--bad)'];
+  }
+
+  // ---------- State ----------
+  let S, autoPref = false, speedPref = 1;
+  function reset() {
+    S = {
+      coins: 150, egfr: 100, stage: 1, waveInStage: 0, inWave: false, queue: [], mult: 1, spawnT: 0,
+      enemies: [], towers: [], shots: [], rings: [], time: 0, paused: false, over: false, started: false,
+      build: null, sel: null, hover: null, seen: new Set(), fact: null, kills: {}, score: 0, autoT: -1,
+      banner: null, kHit: 0, leaked: 0
+    };
+    ETYPES.forEach(t => S.kills[t] = 0);
+    MAP = genMap(TURNS[0]);
+    panelKey = '';
+  }
+
+  // ---------- DOM ----------
+  const $ = id => document.getElementById(id);
+  const cv = $('cv'), ctx = cv.getContext('2d'), overlay = $('overlay'), ov = $('ov');
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  ORDER.forEach((k, i) => {
+    const d = TOWERS[k], b = document.createElement('button');
+    b.type = 'button'; b.className = 'tbtn'; b.id = 'tb-' + k; b.setAttribute('aria-pressed', 'false');
+    b.appendChild(iconCanvas(44, g => { g.fillStyle = '#1d1517'; g.strokeStyle = d.color; g.lineWidth = 2; g.beginPath(); g.roundRect(-20, -20, 40, 40, 9); g.fill(); g.stroke(); towerIcon(g, k, 15); }));
+    const nm = document.createElement('span'); nm.className = 'nm';
+    nm.innerHTML = `<span>${d.name} <kbd>${i + 1}</kbd></span><span class="cost">${d.cost}</span>`;
+    const rl = document.createElement('span'); rl.className = 'rl'; rl.textContent = d.role;
+    b.append(nm, rl);
+    b.addEventListener('click', () => pickBuild(k));
+    $('build').appendChild(b);
+  });
+
+  const erows = {};
+  ETYPES.forEach(k => {
+    const d = ENEMIES[k], li = document.createElement('li'), b = document.createElement('button');
+    b.type = 'button'; b.className = 'erow idle';
+    b.appendChild(iconCanvas(34, g => { const sc = Math.min(1, 12 / d.r); g.scale(sc, sc); enemyShape(g, k, d.r, 0.3, 0); }));
+    const tx = document.createElement('span');
+    tx.innerHTML = `<span class="en">${d.name}</span><br><span class="ed">${d.short} · ${d.pts} pt${d.pts > 1 ? 's' : ''}</span>`;
+    const cnt = document.createElement('span'); cnt.className = 'ec';
+    cnt.innerHTML = `<b>0</b><span>next 0</span>`;
+    b.append(tx, cnt);
+    b.addEventListener('click', () => { S.fact = { kind: 'enemy', key: k }; S.sel = null; panelKey = ''; });
+    li.appendChild(b); $('elist').appendChild(li);
+    erows[k] = { row: b, field: cnt.querySelector('b'), next: cnt.querySelector('span'), last: '' };
+  });
+
+  const speedBtns = [];
+  for (let i = 1; i <= 5; i++) {
+    const b = document.createElement('button'); b.type = 'button'; b.textContent = '×' + i; b.setAttribute('aria-pressed', String(i === 1));
+    b.addEventListener('click', () => { speedPref = i; });
+    speedBtns.push(b); $('speed').appendChild(b);
+  }
+  const pauseBtn = document.createElement('button'); pauseBtn.type = 'button'; pauseBtn.className = 'pause'; pauseBtn.textContent = 'Pause';
+  pauseBtn.addEventListener('click', () => { if (S.started && !S.over) S.paused = !S.paused; });
+  $('speed').appendChild(pauseBtn);
+
+  $('auto').addEventListener('change', e => {
+    autoPref = e.target.checked;
+    if (autoPref && S.started && !S.inWave && !S.over && S.autoT < 0) S.autoT = 1.2;
+    if (!autoPref) S.autoT = -1;
+  });
+  $('start').addEventListener('click', startWave);
+
+  function pickBuild(k) {
+    if (S.over || !S.started) return;
+    S.build = S.build === k ? null : k; S.sel = null;
+    if (S.build) S.fact = { kind: 'tower', key: k };
+    panelKey = '';
+  }
+
+  // ---------- Overlays ----------
+  function showTitle() {
+    ov.innerHTML = `
+      <p class="eyebrow">A kidney health game</p>
+      <h2>Renal <span>Tower</span> Defense</h2>
+      <p>Salt, sugar, painkillers and two boss diseases travel through the bloodstream toward the kidney. Build healthy habits along the vessel to stop them.</p>
+      <div class="facts">
+        <div><b>5</b><span>Stages</span></div>
+        <div><b>5</b><span>Waves each</span></div>
+        <div><b>25</b><span>Waves total</span></div>
+      </div>
+      <p class="note">Each stage brings a new, longer vessel: 2, 4, 6, 8, then 10 turns. Towers are refunded in full when the map changes.</p>
+      <button class="btn primary" id="go" type="button">Start game</button>`;
+    overlay.hidden = false;
+    $('go').addEventListener('click', () => {
+      overlay.hidden = true; S.started = true;
+      S.banner = { title: 'Stage 1 of 5', sub: `Wave 1 of 25 · ${MAP.turns}-turn vessel`, t: 2.4 };
+      if (autoPref) S.autoT = 2.4;
+    });
+    $('go').focus();
+  }
+  function showScore(won) {
+    const g = Math.round(S.egfr), [st] = stageOf(g);
+    const reached = Math.min(TOTAL_WAVES, (S.stage - 1) * PER_STAGE + S.waveInStage + (won ? 0 : 1));
+    const rows = ETYPES.map(k => {
+      const d = ENEMIES[k], n = S.kills[k];
+      return `<tr><td>${d.name}</td><td>${n}</td><td>${d.pts}</td><td>${n * d.pts}</td></tr>`;
+    }).join('');
+    ov.innerHTML = `
+      <p class="eyebrow">${won ? 'All 25 waves cleared' : `Ended on stage ${S.stage}, wave ${S.waveInStage + 1}`}</p>
+      <h2>${won ? 'Kidney protected' : 'Kidney failure (G5)'}</h2>
+      <p>${won
+        ? `Final eGFR ${g}, stage ${st}. Real kidneys do this work around the clock, which is why yearly blood and urine checks matter for anyone with diabetes or high blood pressure.`
+        : `Function fell below 15. In real life this is when dialysis or a transplant takes over, and people go on living with treatment.`}</p>
+      <table class="score">
+        <thead><tr><th>Enemy</th><th>Stopped</th><th>Pts each</th><th>Points</th></tr></thead>
+        <tbody>${rows}</tbody>
+        <tfoot><tr><td>Total score</td><td></td><td></td><td>${S.score}</td></tr></tfoot>
+      </table>
+      <p class="note">Wave ${reached} of 25 reached · ${S.leaked} threat${S.leaked === 1 ? '' : 's'} reached the kidney</p>
+      <button class="btn primary" id="again" type="button">Play again</button>`;
+    overlay.hidden = false;
+    $('again').addEventListener('click', () => { reset(); S.started = true; overlay.hidden = true;
+      S.banner = { title: 'Stage 1 of 5', sub: `Wave 1 of 25 · ${MAP.turns}-turn vessel`, t: 2.4 };
+      if (autoPref) S.autoT = 2.4; });
+    $('again').focus();
+  }
+
+  // ---------- Input ----------
+  function cellFromEvent(e) {
+    const r = cv.getBoundingClientRect();
+    const c = Math.floor((e.clientX - r.left) / r.width * COLS), rr = Math.floor((e.clientY - r.top) / r.height * ROWS);
+    return c < 0 || c >= COLS || rr < 0 || rr >= ROWS ? null : { c, r: rr };
+  }
+  const towerAt = (c, r) => S.towers.find(t => t.c === c && t.r === r);
+  const canPlace = (c, r) => !MAP.blocked(c, r) && !towerAt(c, r);
+
+  cv.addEventListener('pointermove', e => { S.hover = cellFromEvent(e); });
+  cv.addEventListener('pointerleave', () => { S.hover = null; });
+  cv.addEventListener('pointerdown', e => {
+    if (S.over || !S.started) return;
+    const cell = cellFromEvent(e); if (!cell) return;
+    S.hover = cell;
+    const ex = towerAt(cell.c, cell.r);
+    if (ex) { S.sel = ex; S.build = null; panelKey = ''; return; }
+    if (S.build) {
+      const d = TOWERS[S.build];
+      if (canPlace(cell.c, cell.r) && S.coins >= d.cost) {
+        S.coins -= d.cost;
+        S.towers.push({ type: S.build, c: cell.c, r: cell.r, x: (cell.c + .5) * C, y: (cell.r + .5) * C, level: 1, cd: 0, spent: d.cost, kick: 0 });
+        if (S.coins < d.cost) S.build = null;
+        panelKey = '';
+      }
+      return;
+    }
+    S.sel = null; panelKey = '';
+  });
+  window.addEventListener('keydown', e => {
+    if (!S.started || S.over) return;
+    if (e.key >= '1' && e.key <= '3') { const k = ORDER[+e.key - 1]; if (S.coins >= TOWERS[k].cost) pickBuild(k); }
+    else if (e.key === 'Escape') { S.build = null; S.sel = null; panelKey = ''; }
+    else if (e.key === ' ' && e.target === document.body) { e.preventDefault(); startWave(); }
+  });
+
+  function startWave() {
+    if (!S.started || S.inWave || S.over) return;
+    const n = waveNo(), w = buildWave(n, S.stage, S.waveInStage + 1);
+    S.queue = w.q; S.mult = w.mult; S.spawnT = 0.6; S.inWave = true; S.autoT = -1;
+    S.banner = { title: `Wave ${S.waveInStage + 1} of 5`, sub: `Stage ${S.stage} · wave ${n} of 25`, t: 1.8 };
+  }
+
+  // ---------- Simulation ----------
+  function spawn(type) {
+    const d = ENEMIES[type], hp = Math.round(d.hp * S.mult);
+    S.enemies.push({ type, d, hp, max: hp, dist: 0, slowUntil: 0, slowMul: 1, x: MAP.wp[0].x, y: MAP.wp[0].y, spin: Math.random() * 6 });
+    if (!S.seen.has(type)) { S.seen.add(type); if (!S.sel) { S.fact = { kind: 'enemy', key: type }; panelKey = ''; } }
+  }
+  const hurt = (e, dmg) => { e.hp -= Math.max(1, dmg - e.d.armor); };
+
+  function step(dt) {
+    S.time += dt;
+    if (S.banner) { S.banner.t -= dt; if (S.banner.t <= 0) S.banner = null; }
+    S.kHit = Math.max(0, S.kHit - dt);
+    if (!S.inWave && S.autoT >= 0) { S.autoT -= dt; if (S.autoT < 0) startWave(); }
+    if (S.inWave && S.queue.length) {
+      S.spawnT -= dt;
+      if (S.spawnT <= 0) { const n = S.queue.shift(); spawn(n.type); S.spawnT = S.queue.length ? S.queue[0].gap : 0; }
+    }
+    for (const e of S.enemies) {
+      const m = S.time < e.slowUntil ? e.slowMul : 1;
+      e.dist += e.d.speed * m * dt;
+      e.spin += dt * (e.type === 'salt' ? 2.5 : 1);
+      const p = posAt(e.dist); e.x = p.x; e.y = p.y;
+      if (e.dist >= MAP.total) {
+        e.dead = true; S.leaked++;
+        S.egfr = Math.max(0, S.egfr - e.d.leak); S.kHit = 0.4;
+        if (S.egfr < 15) { end(false); return; }
+      }
+    }
+    for (const t of S.towers) {
+      t.cd -= dt; t.kick = Math.max(0, t.kick - dt);
+      if (t.cd > 0) continue;
+      const st = stats(t);
+      let best = null;
+      for (const e of S.enemies) if (!e.dead && Math.hypot(e.x - t.x, e.y - t.y) <= st.range && (!best || e.dist > best.dist)) best = e;
+      if (!best) continue;
+      t.cd = st.rate; t.kick = 0.15;
+      S.shots.push({ x: t.x, y: t.y, tg: best, dmg: st.dmg, splash: st.splash, slow: st.slow, slowDur: st.slowDur, type: t.type, color: TOWERS[t.type].color, spd: t.type === 'flush' ? 340 : 480 });
+    }
+    for (const s of S.shots) {
+      if (s.tg.dead) { s.done = true; continue; }
+      const dx = s.tg.x - s.x, dy = s.tg.y - s.y, dist = Math.hypot(dx, dy), mv = s.spd * dt;
+      if (dist <= mv + s.tg.d.r * 0.5) {
+        s.done = true;
+        if (s.splash) {
+          for (const e of S.enemies) if (!e.dead && Math.hypot(e.x - s.tg.x, e.y - s.tg.y) <= s.splash) hurt(e, s.dmg);
+          S.rings.push({ x: s.tg.x, y: s.tg.y, r: s.splash, t: 0.3, color: s.color });
+        } else hurt(s.tg, s.dmg);
+        if (s.slow) { s.tg.slowUntil = S.time + s.slowDur; s.tg.slowMul = 1 - s.slow; }
+      } else { s.x += dx / dist * mv; s.y += dy / dist * mv; }
+    }
+    for (const e of S.enemies) if (!e.dead && e.hp <= 0) {
+      e.dead = true; S.coins += e.d.reward; S.kills[e.type]++; S.score += e.d.pts;
+    }
+    S.enemies = S.enemies.filter(e => !e.dead);
+    S.shots = S.shots.filter(s => !s.done);
+    for (const r of S.rings) r.t -= dt;
+    S.rings = S.rings.filter(r => r.t > 0);
+
+    if (S.inWave && !S.queue.length && !S.enemies.length) waveCleared();
+  }
+
+  function waveCleared() {
+    const n = waveNo();
+    S.inWave = false; S.waveInStage++; S.coins += 20 + n * 3;
+    if (S.waveInStage >= PER_STAGE) {
+      if (S.stage >= STAGES) { end(true); return; }
+      const back = S.towers.reduce((a, t) => a + t.spent, 0);
+      S.coins += back; S.towers = []; S.sel = null; S.build = null; S.shots = [];
+      S.stage++; S.waveInStage = 0;
+      MAP = genMap(TURNS[S.stage - 1]);
+      S.banner = { title: `Stage ${S.stage - 1} cleared`, sub: `New ${MAP.turns}-turn vessel · ${back} energy refunded from towers`, t: 3 };
+      panelKey = '';
+      if (autoPref) S.autoT = 3.2;
+    } else if (autoPref) S.autoT = 1.5;
+  }
+
+  function end(won) {
+    if (S.over) return;
+    S.over = true; S.inWave = false; S.build = null; S.sel = null; S.autoT = -1;
+    showScore(won);
+  }
+
+  // ---------- Drawing ----------
+  function beanPath(g, x, y, w, h) {
+    g.beginPath();
+    g.moveTo(x - w * 0.02, y - h * 0.5);
+    g.bezierCurveTo(x + w * 0.42, y - h * 0.52, x + w * 0.56, y - h * 0.15, x + w * 0.5, y + h * 0.04);
+    g.bezierCurveTo(x + w * 0.46, y + h * 0.38, x + w * 0.16, y + h * 0.52, x - w * 0.1, y + h * 0.48);
+    g.bezierCurveTo(x - w * 0.46, y + h * 0.44, x - w * 0.56, y + h * 0.16, x - w * 0.24, y + h * 0.08);
+    g.bezierCurveTo(x - w * 0.12, y + h * 0.04, x - w * 0.12, y - h * 0.05, x - w * 0.24, y - h * 0.09);
+    g.bezierCurveTo(x - w * 0.56, y - h * 0.17, x - w * 0.46, y - h * 0.48, x - w * 0.02, y - h * 0.5);
+    g.closePath();
+  }
+  const SCARS = [-2.4, -1.9, -1.35, -0.8, -0.25, 0.3, 0.85, 1.4, 1.95, 2.45, -2.15, 2.2];
+  function drawKidney() {
+    const { x, y, w, h } = MAP.kid;
+    ctx.save();
+    // ureter leaving the hilum
+    ctx.strokeStyle = '#d9b48f'; ctx.lineWidth = 9; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(x - w * 0.14, y + h * 0.04); ctx.bezierCurveTo(x - w * 0.26, y + h * 0.3, x - w * 0.12, y + h * 0.5, x - w * 0.18, y + h * 0.62); ctx.stroke();
+    // cortex
+    if (S.kHit > 0) { ctx.shadowColor = '#e2604f'; ctx.shadowBlur = 24 * (S.kHit / 0.4); }
+    beanPath(ctx, x, y, w, h);
+    ctx.fillStyle = '#a3474a'; ctx.fill();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 3; ctx.strokeStyle = '#4a171c'; ctx.stroke();
+    // medulla with pyramids
+    ctx.save(); beanPath(ctx, x + w * 0.05, y, w * 0.74, h * 0.76); ctx.clip();
+    ctx.fillStyle = '#7d2f35'; ctx.fillRect(x - w, y - h, w * 2, h * 2);
+    const ax = x - w * 0.12;
+    for (let i = 0; i < 6; i++) {
+      const a = -1.15 + i * 0.46, r1 = w * 0.17, r2 = w * 0.5, half = 0.15;
+      ctx.fillStyle = i % 2 ? '#b8585a' : '#c46561';
+      ctx.beginPath();
+      ctx.moveTo(ax + Math.cos(a) * r1, y + Math.sin(a) * r1 * 1.5);
+      ctx.lineTo(ax + Math.cos(a - half) * r2, y + Math.sin(a - half) * r2 * 1.5);
+      ctx.lineTo(ax + Math.cos(a + half) * r2, y + Math.sin(a + half) * r2 * 1.5);
+      ctx.closePath(); ctx.fill();
+    }
+    ctx.restore();
+    // renal pelvis
+    ctx.fillStyle = '#e7c9a8'; ctx.strokeStyle = '#4a171c'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(x - w * 0.12, y, w * 0.1, h * 0.09, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    // scars appear as nephrons are lost
+    const lost = Math.min(1, (100 - S.egfr) / 85), nScar = Math.round(lost * SCARS.length);
+    ctx.fillStyle = 'rgba(120,108,112,0.88)';
+    for (let i = 0; i < nScar; i++) {
+      const a = SCARS[i];
+      const sx = x + w * 0.04 + Math.cos(a) * w * 0.4, sy = y + Math.sin(a) * h * 0.41;
+      ctx.beginPath(); ctx.ellipse(sx, sy, 9 + (i % 3) * 3, 6 + (i % 2) * 3, a, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.restore();
+  }
+  function ring(x, y, r, color) {
+    ctx.fillStyle = color + '1f'; ctx.strokeStyle = color + 'aa'; ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+  }
+  function drawTower(t, ghost) {
+    const d = TOWERS[t.type];
+    ctx.save(); ctx.translate(t.x, t.y);
+    if (ghost) ctx.globalAlpha = 0.6;
+    const k = 1 + (t.kick || 0) * 0.5;
+    ctx.scale(k, k);
+    ctx.fillStyle = '#1d1517'; ctx.strokeStyle = d.color; ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.roundRect(-23, -23, 46, 46, 10); ctx.fill(); ctx.stroke();
+    towerIcon(ctx, t.type, 17, t.type === 'reg' ? 0.5 + Math.sin(S.time * 2.4 + t.x) * 0.35 : null);
+    ctx.restore();
+    if (!ghost) for (let i = 0; i < t.level; i++) {
+      ctx.fillStyle = d.color; ctx.beginPath(); ctx.arc(t.x - 8 + i * 8, t.y + 29, 2.6, 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  function drawEnemy(e) {
+    ctx.save(); ctx.translate(e.x, e.y);
+    if (S.time < e.slowUntil) { ctx.strokeStyle = '#c79be6'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, e.d.r + 5, 0, Math.PI * 2); ctx.stroke(); }
+    enemyShape(ctx, e.type, e.d.r, e.spin, S.time);
+    ctx.restore();
+    if (e.hp < e.max) {
+      const w = Math.max(20, e.d.r * 2.2), f = Math.max(0, e.hp / e.max), top = e.y - e.d.r - 11;
+      ctx.fillStyle = 'rgba(23,17,19,0.85)'; ctx.fillRect(e.x - w / 2, top, w, 4);
+      ctx.fillStyle = f > 0.5 ? P.good : f > 0.25 ? P.warn : P.bad; ctx.fillRect(e.x - w / 2, top, w * f, 4);
+    }
+  }
+  function drawShot(s) {
+    ctx.save(); ctx.translate(s.x, s.y); ctx.fillStyle = s.color;
+    if (s.type === 'flush') { ctx.beginPath(); ctx.moveTo(0, -7); ctx.bezierCurveTo(5, -1, 5, 5, 0, 5); ctx.bezierCurveTo(-5, 5, -5, -1, 0, -7); ctx.fill(); }
+    else if (s.type === 'reg') { ctx.strokeStyle = s.color; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, 5, 0, Math.PI * 2); ctx.stroke(); }
+    else { ctx.beginPath(); ctx.ellipse(0, 0, 4.5, 3, S.time * 8, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore();
+  }
+  function draw() {
+    ctx.drawImage(MAP.bg, 0, 0, W, H);
+    if (S.build) {
+      ctx.strokeStyle = P.grid; ctx.lineWidth = 1;
+      for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) if (canPlace(c, r)) ctx.strokeRect(c * C + .5, r * C + .5, C - 1, C - 1);
+    }
+    if (S.sel) ring(S.sel.x, S.sel.y, stats(S.sel).range, TOWERS[S.sel.type].color);
+    for (const t of S.towers) drawTower(t);
+    if (S.build && S.hover && !S.over) {
+      const { c, r } = S.hover, ok = canPlace(c, r) && S.coins >= TOWERS[S.build].cost;
+      ctx.fillStyle = ok ? P.ok : P.no; ctx.fillRect(c * C, r * C, C, C);
+      if (ok) {
+        const gh = { type: S.build, x: (c + .5) * C, y: (r + .5) * C, level: 1 };
+        ring(gh.x, gh.y, stats(gh).range, TOWERS[S.build].color); drawTower(gh, true);
+      }
+    }
+    for (const e of S.enemies) drawEnemy(e);
+    drawKidney();
+    for (const s of S.shots) drawShot(s);
+    for (const r of S.rings) { ctx.globalAlpha = r.t / 0.3; ring(r.x, r.y, r.r, r.color); ctx.globalAlpha = 1; }
+    if (S.banner && !S.over) {
+      const a = Math.min(1, S.banner.t / 0.4);
+      ctx.globalAlpha = a;
+      ctx.fillStyle = 'rgba(23,17,19,0.82)';
+      ctx.beginPath(); ctx.roundRect(W / 2 - 260, 22, 520, 84, 14); ctx.fill();
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = P.fg; ctx.font = '800 32px "Bricolage Grotesque", system-ui, sans-serif';
+      ctx.fillText(S.banner.title, W / 2, 52);
+      ctx.fillStyle = '#b5a29e'; ctx.font = '600 16px "Atkinson Hyperlegible", system-ui, sans-serif';
+      ctx.fillText(S.banner.sub, W / 2, 84);
+      ctx.globalAlpha = 1;
+    }
+    if (S.paused && !S.over) {
+      ctx.fillStyle = 'rgba(23,17,19,0.55)'; ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = P.fg; ctx.font = '800 44px "Bricolage Grotesque", system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('Paused', W / 2, H / 2);
+    }
+  }
+
+  // ---------- Side panel ----------
+  let panelKey = '';
+  const panel = $('panel');
+  function renderPanel() {
+    const t = S.sel;
+    const key = t ? `t${S.towers.indexOf(t)}-${t.level}-${S.coins >= upCost(t)}` : S.fact ? `f${S.fact.kind}${S.fact.key}` : 'intro';
+    if (key === panelKey) return;
+    panelKey = key;
+    if (t) {
+      const d = TOWERS[t.type], st = stats(t), cost = upCost(t), max = t.level >= 3;
+      panel.innerHTML = `<p class="eyebrow">Selected tower</p>
+        <h2>${d.name} · level ${t.level}</h2>
+        <dl class="kv">
+          <dt>Damage</dt><dd>${st.dmg.toFixed(1)}${st.splash ? ' splash' : ''}</dd>
+          <dt>Range</dt><dd>${(st.range / C).toFixed(2)} cells</dd>
+          <dt>Fires every</dt><dd>${st.rate.toFixed(2)} s</dd>
+          ${st.slow ? `<dt>Slow</dt><dd>${Math.round(st.slow * 100)}% for ${st.slowDur} s</dd>` : ''}
+        </dl>
+        <div class="row">
+          <button class="btn" style="flex:1" id="up" type="button" ${max || S.coins < cost ? 'disabled' : ''}>${max ? 'Max level' : `Upgrade · ${cost}`}</button>
+          <button class="btn" style="flex:1" id="sell" type="button">Sell · +${refund(t)}</button>
+        </div>`;
+      $('up').addEventListener('click', () => { const c = upCost(t); if (t.level < 3 && S.coins >= c) { S.coins -= c; t.spent += c; t.level++; panelKey = ''; } });
+      $('sell').addEventListener('click', () => { S.coins += refund(t); S.towers = S.towers.filter(x => x !== t); S.sel = null; panelKey = ''; });
+      return;
+    }
+    if (S.fact) {
+      const isE = S.fact.kind === 'enemy', d = isE ? ENEMIES[S.fact.key] : TOWERS[S.fact.key];
+      panel.innerHTML = `<p class="eyebrow">${isE ? 'Enemy' : 'Tower'}</p><h2>${d.name}</h2><p>${d.fact}</p>
+        ${isE ? `<dl class="kv"><dt>Base health</dt><dd>${d.hp}</dd><dt>Armour</dt><dd>${d.armor}</dd><dt>eGFR lost if it gets through</dt><dd>−${d.leak}</dd><dt>Score if stopped</dt><dd>${d.pts}</dd></dl>`
+              : `<p class="note">Tap a free tissue square to build. Tap a built tower to upgrade or sell it.</p>`}`;
+      return;
+    }
+    panel.innerHTML = `<p class="eyebrow">How to play</p><h2>Defend the kidney</h2>
+      <ol>
+        <li>Pick a tower below the board.</li>
+        <li>Tap a tissue square beside the blood vessel to place it.</li>
+        <li>Start the wave. Each threat that reaches the kidney lowers eGFR for good.</li>
+        <li>Clear 5 stages of 5 waves without falling to G5.</li>
+      </ol>`;
+  }
+
+  const last = {};
+  const setText = (id, v, html) => { if (last[id] !== v) { last[id] = v; html ? ($(id).innerHTML = v) : ($(id).textContent = v); } };
+  function refreshUI() {
+    const g = Math.round(S.egfr), [st, col] = stageOf(g);
+    if (last.g !== g) {
+      last.g = g;
+      $('egfr').textContent = g; $('pill').textContent = st; $('pill').style.background = col;
+      $('fill').style.width = Math.max(0, Math.min(100, S.egfr)) + '%'; $('fill').style.backgroundColor = col;
+      $('track').setAttribute('aria-valuenow', g);
+    }
+    $('gfr').classList.toggle('hit', S.kHit > 0.2);
+    setText('score', String(S.score));
+    setText('coins', String(S.coins));
+    setText('stage', `${S.stage} <small>/ 5</small>`, true);
+    setText('wave', `${Math.min(PER_STAGE, S.waveInStage + 1)} <small>/ 5 · #${Math.min(TOTAL_WAVES, waveNo())}</small>`, true);
+    const sb = $('start');
+    const label = !S.started ? 'Start wave 1' : S.over ? 'Game over' : S.inWave ? `Wave ${S.waveInStage + 1} in progress` :
+      S.autoT >= 0 ? `Next wave in ${Math.ceil(S.autoT)}…` : `Start wave ${S.waveInStage + 1} of stage ${S.stage}`;
+    if (sb.textContent !== label) sb.textContent = label;
+    sb.disabled = !S.started || S.inWave || S.over;
+    speedBtns.forEach((b, i) => b.setAttribute('aria-pressed', String(speedPref === i + 1)));
+    pauseBtn.textContent = S.paused ? 'Resume' : 'Pause';
+    for (const k of ORDER) {
+      const b = $('tb-' + k);
+      b.disabled = S.coins < TOWERS[k].cost || S.over || !S.started;
+      b.setAttribute('aria-pressed', String(S.build === k));
+    }
+    const field = {}, next = {};
+    ETYPES.forEach(k => { field[k] = 0; next[k] = 0; });
+    for (const e of S.enemies) field[e.type]++;
+    for (const q of S.queue) next[q.type]++;
+    for (const k of ETYPES) {
+      const r = erows[k], sig = field[k] + '/' + next[k];
+      if (r.last === sig) continue;
+      r.last = sig;
+      r.field.textContent = field[k]; r.next.textContent = 'next ' + next[k];
+      r.row.classList.toggle('idle', !field[k] && !next[k]);
+      r.row.classList.toggle('live', field[k] > 0);
+    }
+    renderPanel();
+  }
+
+  // ---------- Loop ----------
+  let prev = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
+    if (S.started && !S.paused && !S.over) for (let i = 0; i < speedPref && !S.over; i++) step(dt);
+    draw(); refreshUI();
+    requestAnimationFrame(frame);
+  }
+  reset();
+  showTitle();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { last.g = undefined; }).catch(() => {});
+  requestAnimationFrame(frame);
+})();
+</script>
+
+</body>
+</html>
