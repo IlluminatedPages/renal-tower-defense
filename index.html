@@ -67,10 +67,34 @@ h1 span { color: var(--accent); }
 .hit .fill { background: var(--bad) !important; }
 
 .main { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 16px; align-items: start; }
-@media (max-width: 920px) { .main { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 920px) {
+  .main { grid-template-columns: minmax(0, 1fr); }
+  .desk-only { display: none !important; }
+}
+
 .board { display: grid; gap: 12px; min-width: 0; }
 .stage { position: relative; border-radius: 14px; overflow: hidden; border: 1px solid var(--line); background: var(--panel); }
-canvas#cv { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; touch-action: manipulation; cursor: crosshair; }
+/* The board keeps its aspect ratio but never grows taller than the viewport allows; phones and portrait tablets get a vertical board. */
+.stage { --ar: 1.6; --reserve: 250px; width: min(100%, calc((100vh - var(--reserve)) * var(--ar))); width: min(100%, calc((100dvh - var(--reserve)) * var(--ar))); min-width: min(100%, 300px); margin-inline: auto; }
+.stage.portrait { --ar: 0.625; --reserve: 330px; }
+canvas#cv { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; touch-action: manipulation; cursor: crosshair; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+.stage.portrait canvas#cv { aspect-ratio: 10 / 16; }
+@media (max-height: 520px) and (orientation: landscape) { .stage { --reserve: 24px; } }
+.hint { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); background: color-mix(in srgb, var(--bg) 88%, transparent); border: 1px solid var(--line); color: var(--fg); font-size: 13px; padding: 5px 12px; border-radius: 999px; pointer-events: none; white-space: nowrap; }
+.pop { position: absolute; z-index: 5; width: 188px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px; display: grid; gap: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+.pop .ph { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-weight: 700; font-size: 13.5px; }
+.pop .ph small { color: var(--muted); font-weight: 500; }
+.pop .x { font: inherit; background: none; border: none; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 6px; border-radius: 6px; }
+.pop .pb { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.pop .btn { padding: 8px 6px; font-size: 13px; min-height: 40px; }
+.mctrl { display: none; grid-template-columns: 1fr auto auto; gap: 8px; }
+.mctrl .btn { min-height: 46px; }
+.mctrl #mspeed { font-family: var(--mono); min-width: 56px; }
+.echips { display: none; gap: 6px; flex-wrap: wrap; min-height: 34px; align-items: center; }
+.echip { display: inline-flex; align-items: center; gap: 4px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 2px 10px 2px 3px; font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; color: var(--fg); cursor: pointer; }
+.echip canvas { width: 26px; height: 26px; }
+.echip[hidden] { display: none !important; }
+.echips .none { font-size: 12.5px; color: var(--muted); }
 
 .build { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 8px; }
 @media (max-width: 480px) { .build { grid-template-columns: minmax(0, 1fr); } }
@@ -170,6 +194,28 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     padding: calc(16px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
 }
 @media (max-width: 520px) { .overlay .box { gap: 8px; } table.score th, table.score td { padding: 4px 4px; font-size: 12.5px; } }
+/* placed last so it overrides the base rules above */
+@media (max-width: 640px) {
+  .app { gap: 10px; padding-block: 12px 24px; }
+  .tag { display: none; }
+  header { gap: 8px; }
+  .stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; width: 100%; }
+  .stat { min-width: 0; padding: 4px 6px; border-radius: 8px; }
+  .stat .k { font-size: 9.5px; letter-spacing: .04em; }
+  .stat .v { font-size: 15px; white-space: nowrap; }
+  .stat .v small { display: none; }
+  .gfr { padding: 8px 12px 6px; gap: 5px; }
+  .gfr-val { font-size: 18px; }
+  .track { height: 14px; }
+  .bands { font-size: 9.5px; height: 12px; }
+  /* towers become a swipeable strip of compact buttons */
+  .build { display: flex; overflow-x: auto; scroll-snap-type: x proximity; gap: 6px; padding-bottom: 4px; }
+  .tbtn { flex: 0 0 92px; scroll-snap-align: start; grid-template-columns: 1fr; justify-items: center; text-align: center; padding: 6px 4px; gap: 2px; }
+  .tbtn canvas { grid-row: auto; width: 40px; height: 40px; }
+  .tbtn .nm { flex-direction: column; align-items: center; gap: 0; font-size: 12px; line-height: 1.2; }
+  .tbtn .rl, .tbtn kbd { display: none; }
+}
+@media (max-width: 920px) { .mctrl { display: grid; } .echips { display: flex; } }
 </style>
 
 <div class="app">
@@ -205,18 +251,26 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
 
   <div class="main">
     <div class="board">
-      <div class="stage">
+      <div class="stage" id="stagebox">
         <canvas id="cv" width="960" height="600" aria-label="Game board: a blood vessel winding across tissue toward the kidney"></canvas>
+        <div class="hint" id="hint" hidden></div>
+        <div class="pop" id="pop" hidden></div>
         <div class="overlay" id="overlay"><div class="box" id="ov"></div></div>
+      </div>
+      <div class="echips" id="echips" aria-label="Enemies on the board"></div>
+      <div class="mctrl">
+        <button class="btn primary" id="mstart" type="button">Start wave</button>
+        <button class="btn" id="mspeed" type="button" aria-label="Change speed">×1</button>
+        <button class="btn" id="mpause" type="button">Pause</button>
       </div>
       <div class="build" id="build"></div>
     </div>
 
     <aside>
       <div class="card">
-        <button class="btn primary wide" id="start" type="button">Start wave 1</button>
+        <button class="btn primary wide desk-only" id="start" type="button">Start wave 1</button>
         <label class="switch" for="auto"><input type="checkbox" id="auto"> Start the next wave automatically</label>
-        <div>
+        <div class="desk-only">
           <div class="k" style="margin-bottom:6px">Speed</div>
           <div class="seg" id="speed" role="group" aria-label="Game speed"></div>
         </div>
@@ -738,7 +792,21 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   const $ = id => document.getElementById(id);
   const cv = $('cv'), ctx = cv.getContext('2d'), overlay = $('overlay'), ov = $('ov');
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
-  cv.width = W * dpr; cv.height = H * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  // ROT: on phones and portrait tablets the 16×10 board is drawn rotated 90°, so blood flows from top to bottom.
+  let ROT = false, popKey = '';
+  const portraitQ = window.matchMedia('(max-width: 920px) and (orientation: portrait)');
+  function layout() {
+    const want = !!portraitQ.matches;
+    if (want === ROT && cv.width) return;
+    ROT = want;
+    cv.width = (ROT ? H : W) * dpr; cv.height = (ROT ? W : H) * dpr;
+    $('stagebox').classList.toggle('portrait', ROT);
+    if (typeof S !== 'undefined' && S) S.hover = null;
+    popKey = '';
+  }
+  cv.width = 0; layout();
+  if (portraitQ.addEventListener) portraitQ.addEventListener('change', layout); else if (portraitQ.addListener) portraitQ.addListener(layout);
+  window.addEventListener('resize', () => { layout(); popKey = ''; });
 
   ORDER.forEach((k, i) => {
     const d = TOWERS[k], b = document.createElement('button');
@@ -766,7 +834,13 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     b.append(tx, cnt);
     b.addEventListener('click', () => { S.fact = { kind: 'enemy', key: k }; S.sel = null; panelKey = ''; });
     li.appendChild(b); $('elist').appendChild(li);
-    erows[k] = { row: b, field: cnt.querySelector('b'), next: cnt.querySelector('span'), last: '' };
+    const chip = document.createElement('button'); chip.type = 'button'; chip.className = 'echip'; chip.hidden = true;
+    chip.appendChild(iconCanvas(26, g => { const sc = Math.min(1, 10 / d.r); g.scale(sc, sc); enemyShape(g, k, d.r, 0.3, 0); }));
+    const cc = document.createElement('span'); cc.textContent = '0'; chip.appendChild(cc);
+    chip.setAttribute('aria-label', d.name);
+    chip.addEventListener('click', () => { S.fact = { kind: 'enemy', key: k }; S.sel = null; panelKey = ''; hint(`${d.name} · ${d.short}`); });
+    $('echips').appendChild(chip);
+    erows[k] = { row: b, field: cnt.querySelector('b'), next: cnt.querySelector('span'), last: '', chip, cc };
   });
 
   const speedBtns = [];
@@ -777,6 +851,11 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   }
   const pauseBtn = document.createElement('button'); pauseBtn.type = 'button'; pauseBtn.className = 'pause'; pauseBtn.textContent = 'Pause';
   pauseBtn.addEventListener('click', () => { if (S.started && !S.over) { S.paused = !S.paused; SFX.duck(S.paused); } });
+  $('mstart').addEventListener('click', startWave);
+  $('mspeed').addEventListener('click', () => { speedPref = speedPref % 5 + 1; });
+  $('mpause').addEventListener('click', () => pauseBtn.click());
+  const noChips = document.createElement('span'); noChips.className = 'none'; noChips.textContent = 'No enemies on the board';
+  $('echips').prepend(noChips);
   const musicBtn = $('musicBtn'), sfxBtn = $('sfxBtn');
   const soundLabels = () => {
     musicBtn.textContent = SFX.musicOn ? 'Music on' : 'Music off'; musicBtn.setAttribute('aria-pressed', String(SFX.musicOn));
@@ -799,7 +878,8 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
 
   function pickBuild(k) {
     if (S.over || !S.started || !unlocked(k)) return;
-    S.build = S.build === k ? null : k; S.sel = null;
+    S.build = S.build === k ? null : k; S.sel = null; S.pending = null;
+    if (S.build && window.matchMedia('(pointer: coarse)').matches) hint(`Tap a square for ${TOWERS[k].name}`);
     if (S.build) S.fact = { kind: 'tower', key: k };
     panelKey = '';
   }
@@ -870,23 +950,42 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   // ---------- Input ----------
   function cellFromEvent(e) {
     const r = cv.getBoundingClientRect();
-    const c = Math.floor((e.clientX - r.left) / r.width * COLS), rr = Math.floor((e.clientY - r.top) / r.height * ROWS);
+    const fx = (e.clientX - r.left) / r.width, fy = (e.clientY - r.top) / r.height;
+    const lx = ROT ? fy * W : fx * W, ly = ROT ? (1 - fx) * H : fy * H;
+    const c = Math.floor(lx / C), rr = Math.floor(ly / C);
     return c < 0 || c >= COLS || rr < 0 || rr >= ROWS ? null : { c, r: rr };
+  }
+  // where a board point sits on screen, as fractions of the canvas
+  const toScreen = (x, y) => ROT ? { fx: (H - y) / H, fy: x / W } : { fx: x / W, fy: y / H };
+  let hintT = null;
+  function hint(msg) {
+    const h = $('hint'); h.textContent = msg; h.hidden = !msg;
+    clearTimeout(hintT); if (msg) hintT = setTimeout(() => { h.hidden = true; }, 2200);
   }
   const towerAt = (c, r) => S.towers.find(t => t.c === c && t.r === r);
   const canPlace = (c, r) => !MAP.blocked(c, r) && !towerAt(c, r);
 
-  cv.addEventListener('pointermove', e => { S.hover = cellFromEvent(e); });
-  cv.addEventListener('pointerleave', () => { S.hover = null; });
+  cv.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') S.hover = cellFromEvent(e); });
+  cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') S.hover = null; });
   cv.addEventListener('pointerdown', e => {
     if (S.over || !S.started) return;
     const cell = cellFromEvent(e); if (!cell) return;
     S.hover = cell;
     const ex = towerAt(cell.c, cell.r);
-    if (ex) { S.sel = ex; S.build = null; panelKey = ''; return; }
+    if (ex) { S.sel = S.sel === ex ? null : ex; S.build = null; S.pending = null; panelKey = ''; return; }
     if (S.build) {
       const d = TOWERS[S.build];
+      // Touch: the first tap previews the tower and its range, a second tap on the same square builds it.
+      if (e.pointerType !== 'mouse') {
+        const same = S.pending && S.pending.c === cell.c && S.pending.r === cell.r;
+        if (!same) {
+          S.pending = cell;
+          hint(canPlace(cell.c, cell.r) ? (S.coins >= d.cost ? 'Tap again to build' : 'Not enough energy') : 'Can’t build there');
+          return;
+        }
+      }
       if (canPlace(cell.c, cell.r) && S.coins >= d.cost) {
+        S.pending = null; hint('');
         S.coins -= d.cost;
         S.towers.push({ type: S.build, c: cell.c, r: cell.r, x: (cell.c + .5) * C, y: (cell.r + .5) * C, level: 1, cd: 0, spent: d.cost, kick: 0 });
         if (S.coins < d.cost) S.build = null;
@@ -895,7 +994,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       }
       return;
     }
-    S.sel = null; panelKey = '';
+    S.sel = null; S.pending = null; panelKey = '';
   });
   window.addEventListener('keydown', e => {
     if (!S.started || S.over) return;
@@ -1082,31 +1181,39 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   function drawTower(t, ghost) {
     const d = TOWERS[t.type];
     ctx.save(); ctx.translate(t.x, t.y);
+    if (ROT) ctx.rotate(-Math.PI / 2);
     if (ghost) ctx.globalAlpha = 0.6;
+    ctx.save();
     const k = 1 + (t.kick || 0) * 0.5;
     ctx.scale(k, k);
-    ctx.fillStyle = '#1d1517'; ctx.strokeStyle = d.color; ctx.lineWidth = 2.5;
+    ctx.fillStyle = '#1d1517'; ctx.strokeStyle = d.color; ctx.lineWidth = S.sel === t ? 4 : 2.5;
     ctx.beginPath(); ctx.roundRect(-23, -23, 46, 46, 10); ctx.fill(); ctx.stroke();
     towerIcon(ctx, t.type, 17, t.type === 'reg' ? 0.5 + Math.sin(S.time * 2.4 + t.x) * 0.35 : null);
     ctx.restore();
     if (!ghost && t.smoked) {
       ctx.fillStyle = 'rgba(150,140,145,0.5)';
-      ctx.beginPath(); ctx.roundRect(t.x - 23, t.y - 23, 46, 46, 10); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(-23, -23, 46, 46, 10); ctx.fill();
     }
     if (!ghost) for (let i = 0; i < t.level; i++) {
-      ctx.fillStyle = d.color; ctx.beginPath(); ctx.arc(t.x - 8 + i * 8, t.y + 29, 2.6, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = d.color; ctx.beginPath(); ctx.arc(-8 + i * 8, 29, 2.6, 0, Math.PI * 2); ctx.fill();
     }
+    ctx.restore();
+  }
+  function upright(x, y) { ctx.save(); ctx.translate(x, y); if (ROT) ctx.rotate(-Math.PI / 2); }
+  function hpBar(e) {
+    if (e.hp >= e.max) return;
+    const w = Math.max(20, e.d.r * 2.2), f = Math.max(0, e.hp / e.max), top = -e.d.r - 11;
+    upright(e.x, e.y);
+    ctx.fillStyle = 'rgba(23,17,19,0.85)'; ctx.fillRect(-w / 2, top, w, 4);
+    ctx.fillStyle = f > 0.5 ? P.good : f > 0.25 ? P.warn : P.bad; ctx.fillRect(-w / 2, top, w * f, 4);
+    ctx.restore();
   }
   function drawEnemy(e) {
-    ctx.save(); ctx.translate(e.x, e.y);
+    upright(e.x, e.y);
     if (S.time < e.slowUntil) { ctx.strokeStyle = '#c79be6'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, e.d.r + 5, 0, Math.PI * 2); ctx.stroke(); }
     enemyShape(ctx, e.type, e.d.r, e.spin, S.time);
     ctx.restore();
-    if (e.hp < e.max) {
-      const w = Math.max(20, e.d.r * 2.2), f = Math.max(0, e.hp / e.max), top = e.y - e.d.r - 11;
-      ctx.fillStyle = 'rgba(23,17,19,0.85)'; ctx.fillRect(e.x - w / 2, top, w, 4);
-      ctx.fillStyle = f > 0.5 ? P.good : f > 0.25 ? P.warn : P.bad; ctx.fillRect(e.x - w / 2, top, w * f, 4);
-    }
+    hpBar(e);
   }
   // A drifting cloud drawn over the enemies, so whatever travels inside it is hard to see.
   function drawSmoke(e) {
@@ -1126,12 +1233,8 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     ctx.beginPath(); ctx.arc(e.x, e.y, 22, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
     // keep the smoker itself readable on top of its own cloud
-    ctx.save(); ctx.translate(e.x, e.y); enemyShape(ctx, 'smoke', e.d.r, e.spin, S.time); ctx.restore();
-    if (e.hp < e.max) {
-      const w = Math.max(20, e.d.r * 2.2), f = Math.max(0, e.hp / e.max), top = e.y - e.d.r - 11;
-      ctx.fillStyle = 'rgba(23,17,19,0.85)'; ctx.fillRect(e.x - w / 2, top, w, 4);
-      ctx.fillStyle = f > 0.5 ? P.good : f > 0.25 ? P.warn : P.bad; ctx.fillRect(e.x - w / 2, top, w * f, 4);
-    }
+    upright(e.x, e.y); enemyShape(ctx, 'smoke', e.d.r, e.spin, S.time); ctx.restore();
+    hpBar(e);
   }
   function drawShot(s) {
     ctx.save(); ctx.translate(s.x, s.y); ctx.fillStyle = s.color;
@@ -1144,6 +1247,8 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     ctx.restore();
   }
   function draw() {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (ROT) { ctx.translate(H, 0); ctx.rotate(Math.PI / 2); }
     ctx.drawImage(MAP.bg, 0, 0, W, H);
     if (S.build) {
       ctx.strokeStyle = P.grid; ctx.lineWidth = 1;
@@ -1158,8 +1263,9 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       ctx.beginPath(); ctx.arc(t.x, t.y, r, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
     }
     for (const t of S.towers) drawTower(t);
-    if (S.build && S.hover && !S.over) {
-      const { c, r } = S.hover, ok = canPlace(c, r) && S.coins >= TOWERS[S.build].cost;
+    const aim = S.pending || S.hover;
+    if (S.build && aim && !S.over) {
+      const { c, r } = aim, ok = canPlace(c, r) && S.coins >= TOWERS[S.build].cost;
       ctx.fillStyle = ok ? P.ok : P.no; ctx.fillRect(c * C, r * C, C, C);
       if (ok) {
         const gh = { type: S.build, x: (c + .5) * C, y: (r + .5) * C, level: 1 };
@@ -1175,29 +1281,58 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
         ctx.beginPath(); ctx.moveTo(e.x + sx * r, e.y + sy * (r - k)); ctx.lineTo(e.x + sx * r, e.y + sy * r); ctx.lineTo(e.x + sx * (r - k), e.y + sy * r); ctx.stroke();
       }
       if (e.type !== 'smoke' && S.enemies.some(o => o.type === 'smoke' && !o.cleared && Math.hypot(o.x - e.x, o.y - e.y) <= SMOKE_R)) {
-        ctx.save(); ctx.translate(e.x, e.y); enemyShape(ctx, e.type, e.d.r, e.spin, S.time); ctx.restore();
+        upright(e.x, e.y); enemyShape(ctx, e.type, e.d.r, e.spin, S.time); ctx.restore();
       }
     }
     drawKidney();
     for (const s of S.shots) drawShot(s);
     for (const r of S.rings) { ctx.globalAlpha = r.t / 0.3; ring(r.x, r.y, r.r, r.color); ctx.globalAlpha = 1; }
+    // screen-space layer: text stays upright whatever the board orientation
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const SW = ROT ? H : W, SH = ROT ? W : H, big = ROT ? 1.25 : 1;
     if (S.banner && !S.over) {
-      const a = Math.min(1, S.banner.t / 0.4);
+      const a = Math.min(1, S.banner.t / 0.4), bw = Math.min(520, SW - 40);
       ctx.globalAlpha = a;
       ctx.fillStyle = 'rgba(23,17,19,0.82)';
-      ctx.beginPath(); ctx.roundRect(W / 2 - 260, 22, 520, 84, 14); ctx.fill();
+      ctx.beginPath(); ctx.roundRect(SW / 2 - bw / 2, 22, bw, 92 * big, 14); ctx.fill();
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillStyle = P.fg; ctx.font = '800 32px "Bricolage Grotesque", system-ui, sans-serif';
-      ctx.fillText(S.banner.title, W / 2, 52);
-      ctx.fillStyle = '#b5a29e'; ctx.font = '600 16px "Atkinson Hyperlegible", system-ui, sans-serif';
-      ctx.fillText(S.banner.sub, W / 2, 84);
+      ctx.fillStyle = P.fg; ctx.font = `800 ${Math.round(32 * big)}px "Bricolage Grotesque", system-ui, sans-serif`;
+      ctx.fillText(S.banner.title, SW / 2, 22 + 32 * big, bw - 24);
+      ctx.fillStyle = '#b5a29e'; ctx.font = `600 ${Math.round(16 * big)}px "Atkinson Hyperlegible", system-ui, sans-serif`;
+      ctx.fillText(S.banner.sub, SW / 2, 22 + 68 * big, bw - 24);
       ctx.globalAlpha = 1;
     }
     if (S.paused && !S.over) {
-      ctx.fillStyle = 'rgba(23,17,19,0.55)'; ctx.fillRect(0, 0, W, H);
-      ctx.fillStyle = P.fg; ctx.font = '800 44px "Bricolage Grotesque", system-ui, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillText('Paused', W / 2, H / 2);
+      ctx.fillStyle = 'rgba(23,17,19,0.55)'; ctx.fillRect(0, 0, SW, SH);
+      ctx.fillStyle = P.fg; ctx.font = `800 ${Math.round(44 * big)}px "Bricolage Grotesque", system-ui, sans-serif`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText('Paused', SW / 2, SH / 2);
     }
+  }
+
+  // ---------- Tower popover ----------
+  function doUpgrade(t) { const c = upCost(t); if (t.level < 3 && S.coins >= c) { S.coins -= c; t.spent += c; t.level++; panelKey = ''; popKey = ''; SFX.play('upgrade'); } }
+  function doSell(t) { S.coins += refund(t); S.towers = S.towers.filter(x => x !== t); S.sel = null; panelKey = ''; popKey = ''; SFX.play('sell'); }
+  function renderPop() {
+    const pop = $('pop'), t = S.sel;
+    if (!t || S.over || !S.towers.includes(t)) { if (!pop.hidden) { pop.hidden = true; popKey = ''; } return; }
+    const cost = upCost(t), max = t.level >= 3, key = `${S.towers.indexOf(t)}-${t.level}-${S.coins >= cost}-${ROT}`;
+    if (key === popKey) return;
+    popKey = key;
+    const d = TOWERS[t.type];
+    pop.innerHTML = `<div class="ph"><span>${d.name} <small>· level ${t.level}</small></span><button class="x" type="button" aria-label="Close">×</button></div>
+      <div class="pb"><button class="btn primary" type="button" data-a="up" ${max || S.coins < cost ? 'disabled' : ''}>${max ? 'Max level' : `Upgrade ${cost}`}</button>
+      <button class="btn" type="button" data-a="sell">Sell +${refund(t)}</button></div>`;
+    pop.querySelector('.x').addEventListener('click', () => { S.sel = null; panelKey = ''; });
+    pop.querySelector('[data-a="up"]').addEventListener('click', () => doUpgrade(t));
+    pop.querySelector('[data-a="sell"]').addEventListener('click', () => doSell(t));
+    pop.hidden = false;
+    const box = $('stagebox').getBoundingClientRect(), { fx, fy } = toScreen(t.x, t.y);
+    const cell = box.width / (ROT ? ROWS : COLS), pw = pop.offsetWidth || 188, ph = pop.offsetHeight || 96;
+    const x = Math.min(Math.max(fx * box.width, pw / 2 + 6), box.width - pw / 2 - 6), y = fy * box.height;
+    const below = y - cell * 0.6 - 8 - ph < 4;
+    pop.style.left = x + 'px';
+    pop.style.top = (below ? y + cell * 0.6 + 8 : y - cell * 0.6 - 8) + 'px';
+    pop.style.transform = below ? 'translateX(-50%)' : 'translate(-50%, -100%)';
   }
 
   // ---------- Side panel ----------
@@ -1222,8 +1357,8 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
           <button class="btn" style="flex:1" id="up" type="button" ${max || S.coins < cost ? 'disabled' : ''}>${max ? 'Max level' : `Upgrade · ${cost}`}</button>
           <button class="btn" style="flex:1" id="sell" type="button">Sell · +${refund(t)}</button>
         </div>`;
-      $('up').addEventListener('click', () => { const c = upCost(t); if (t.level < 3 && S.coins >= c) { S.coins -= c; t.spent += c; t.level++; panelKey = ''; SFX.play('upgrade'); } });
-      $('sell').addEventListener('click', () => { S.coins += refund(t); S.towers = S.towers.filter(x => x !== t); S.sel = null; panelKey = ''; SFX.play('sell'); });
+      $('up').addEventListener('click', () => doUpgrade(t));
+      $('sell').addEventListener('click', () => doSell(t));
       return;
     }
     if (S.fact) {
@@ -1284,10 +1419,21 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       if (r.last === sig) continue;
       r.last = sig;
       r.field.textContent = field[k]; r.next.textContent = 'next ' + next[k];
+      r.chip.hidden = !field[k] && !next[k]; r.cc.textContent = next[k] ? `${field[k]} +${next[k]}` : String(field[k]);
+      r.chip.style.opacity = field[k] ? '1' : '.55';
       r.row.classList.toggle('idle', !field[k] && !next[k]);
       r.row.classList.toggle('live', field[k] > 0);
     }
     renderPanel();
+    renderPop();
+    const anyChip = ETYPES.some(k => !erows[k].chip.hidden);
+    if (last.noChips !== anyChip) { last.noChips = anyChip; noChips.hidden = anyChip; }
+    const ms = $('mstart'), ml = !S.started ? 'Start' : S.over ? 'Game over' : S.inWave ? `Wave ${S.waveInStage + 1} of 5…` :
+      S.autoT >= 0 ? `Next wave in ${Math.ceil(S.autoT)}…` : `Start wave ${S.waveInStage + 1} of 5`;
+    if (ms.textContent !== ml) ms.textContent = ml;
+    ms.disabled = !S.started || S.inWave || S.over;
+    setText('mspeed', '×' + speedPref);
+    setText('mpause', S.paused ? 'Resume' : 'Pause');
   }
 
   // ---------- Loop ----------
