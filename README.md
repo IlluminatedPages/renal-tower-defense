@@ -6,7 +6,7 @@ A browser tower defense game about protecting kidney health. Threats travel thro
 
 Open `index.html` in any modern browser. No build step or dependencies.
 
-Works on phones, tablets and desktop browsers. On phones and portrait tablets the board turns vertical, towers are placed with two taps (preview, then confirm), and the main controls sit under the board.
+Works on phones, tablets and desktop browsers. On phones and tablets the weapons and wave controls sit in a tray pinned to the bottom of the screen, and towers are placed with two taps (preview, then confirm).
 
 ## How it works
 
