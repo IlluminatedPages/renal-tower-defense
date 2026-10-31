@@ -150,6 +150,14 @@ dl.kv dd { margin: 0; font-family: var(--mono); font-variant-numeric: tabular-nu
 .overlay .facts div { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 6px 12px; }
 .overlay .facts b { display: block; font-family: var(--mono); font-size: 20px; color: var(--fg); }
 .overlay .facts span { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; width: 100%; }
+@media (max-width: 520px) { .modes { grid-template-columns: minmax(0, 1fr); } }
+.mode { font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px; cursor: pointer; display: grid; gap: 2px; text-align: left; }
+.mode b { font-family: var(--display); font-size: 17px; }
+.mode span { font-size: 12.5px; color: var(--muted); line-height: 1.35; }
+.mode small { font-family: var(--mono); font-size: 11px; color: var(--accent); }
+.mode[aria-checked="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--panel-2); }
+.mode:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 table.score { width: 100%; border-collapse: collapse; font-size: 14px; }
 table.score th, table.score td { padding: 6px 8px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
 table.score th { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
@@ -173,6 +181,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     <div class="stats">
       <div class="stat"><div class="k">Score</div><div class="v" id="score">0</div></div>
       <div class="stat"><div class="k">Energy</div><div class="v" id="coins">150</div></div>
+      <div class="stat"><div class="k">Mode</div><div class="v" id="mode">Medium</div></div>
       <div class="stat"><div class="k">Stage</div><div class="v" id="stage">1 <small>/ 5</small></div></div>
       <div class="stat"><div class="k">Wave</div><div class="v" id="wave">1 <small>/ 5</small></div></div>
     </div>
@@ -244,42 +253,42 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   };
 
   const TOWERS = {
-    diet: { name: 'Healthy diet', cost: 50, range: 2.4, dmg: 10, rate: 0.55, color: '#8fd16a', role: 'Fast, single target',
+    diet: { name: 'Healthy diet', cost: 50, range: 2.3, dmg: 8, rate: 0.6, color: '#8fd16a', role: 'Fast, single target',
       fact: 'A mostly plant-based, minimally processed diet with less salt and sugar eases the load on blood pressure, blood sugar and the kidneys.' },
-    flush: { name: 'Hydration', cost: 80, range: 5.2, dmg: 7, rate: 3.45, splash: 1.0, color: '#6fb6e8', role: 'Long range · splash',
+    flush: { name: 'Hydration', cost: 90, range: 4.5, dmg: 20, rate: 2.4, splash: 1.0, color: '#6fb6e8', role: 'Long range · splash',
       fact: 'Drinking to thirst, and more in hot weather, protects against dehydration, a common trigger of acute kidney injury.' },
-    reg: { name: 'BP control', cost: 70, range: 2.1, dmg: 3, rate: 0.9, slow: 0.45, slowDur: 1.4, color: '#c79be6', role: 'Slows what it hits',
+    reg: { name: 'BP control', cost: 60, range: 2.2, dmg: 4, rate: 0.9, slow: 0.4, slowDur: 1.5, color: '#c79be6', role: 'Slows what it hits',
       fact: 'Keeping blood pressure in range protects the kidney’s small arteries. Regular measurement catches a rise early.' }
   };
   Object.assign(TOWERS, {
-    ex: { name: 'Exercise', cost: 150, range: 2.2, dmg: 4, rate: 0.12, color: '#ff9f43', role: 'Rapid fire', premium: true, unlock: 2,
+    ex: { name: 'Exercise', cost: 150, range: 2.2, dmg: 3, rate: 0.1, color: '#ff9f43', role: 'Rapid fire', premium: true, unlock: 2,
       fact: 'Regular activity, at least 150 minutes of moderate exercise a week, helps lower blood pressure, blood sugar and weight.' },
-    quit: { name: 'Quit smoking', cost: 120, range: 2.2, dmg: 6, rate: 0.8, color: '#e85d75', role: 'Clears smoke · 4× vs Smoking', premium: true, unlock: 3,
+    quit: { name: 'Quit smoking', cost: 110, range: 2.2, dmg: 6, rate: 0.8, color: '#e85d75', role: 'Clears smoke · 4× vs Smoking', premium: true, unlock: 3,
       fact: 'Stopping smoking protects blood vessels and slows kidney decline. This tower clears smoke clouds in its range and hits smokers four times harder.' },
-    screen: { name: 'Health screening', cost: 140, range: 2.4, dmg: 0, rate: 0, color: '#4fd1c5', role: 'Reveals · +25% damage taken', premium: true, unlock: 3, support: true,
+    screen: { name: 'Health screening', cost: 130, range: 2.4, dmg: 0, rate: 0, color: '#4fd1c5', role: 'Reveals · +25% damage taken', premium: true, unlock: 3, support: true,
       fact: 'A blood test (eGFR) and a urine test (ACR) together catch kidney damage that causes no symptoms. Enemies in range are revealed through smoke and take extra damage.' },
-    med: { name: 'Medication', cost: 200, range: 3.6, dmg: 60, rate: 2.2, color: '#f7d774', role: 'Sniper · ignores armour', premium: true, unlock: 4,
+    med: { name: 'Medication', cost: 220, range: 4.0, dmg: 80, rate: 2.5, color: '#f7d774', role: 'Sniper · ignores armour', premium: true, unlock: 4,
       fact: 'Prescribed treatment for blood pressure, diabetes and kidney disease lowers the risk of kidney failure and heart disease. Always taken under a doctor’s care.' }
   });
   const ORDER = ['diet', 'flush', 'reg', 'ex', 'quit', 'screen', 'med'];
   const unlocked = k => (TOWERS[k].unlock || 1) <= S.stage;
 
   const ENEMIES = {
-    salt: { name: 'Salt', short: 'Swarm', hp: 22, speed: 62, reward: 4, leak: 2, armor: 0, r: 9, pts: 1,
+    salt: { name: 'Salt', short: 'Swarm', hp: 20, speed: 62, reward: 3, leak: 1, armor: 0, r: 9, pts: 1,
       fact: 'Too much salt raises blood pressure. Guidance is under about 5 g of salt a day; sauces, stock and instant noodles add up quickly.' },
-    sugar: { name: 'Sugar', short: 'Sturdier swarm', hp: 34, speed: 52, reward: 5, leak: 2, armor: 0, r: 10, pts: 1,
+    sugar: { name: 'Sugar', short: 'Sturdier swarm', hp: 32, speed: 52, reward: 4, leak: 1, armor: 0, r: 10, pts: 1,
       fact: 'Persistently high blood sugar damages the glomerular filters over time. Sugary drinks are one of the easiest sources to cut.' },
-    pain: { name: 'Painkiller', short: 'Fast', hp: 16, speed: 108, reward: 5, leak: 3, armor: 0, r: 9, pts: 2,
+    pain: { name: 'Painkiller', short: 'Fast', hp: 18, speed: 108, reward: 4, leak: 2, armor: 0, r: 9, pts: 2,
       fact: 'Regular use of NSAIDs such as ibuprofen, naproxen or diclofenac narrows the vessel feeding each glomerulus. Ask a doctor or pharmacist before taking them often.' },
-    hyp: { name: 'Hypertension', short: 'Boss · armoured', hp: 260, speed: 34, reward: 30, leak: 10, armor: 3, r: 17, pts: 3,
+    hyp: { name: 'Hypertension', short: 'Boss · armoured', hp: 300, speed: 34, reward: 25, leak: 8, armor: 3, r: 17, pts: 3,
       fact: 'High blood pressure scars the kidney’s small arteries, and a damaged kidney raises pressure further. It is a leading cause of kidney failure.' },
-    dia: { name: 'Diabetes', short: 'Boss · heavily armoured', hp: 380, speed: 26, reward: 35, leak: 12, armor: 5, r: 19, pts: 3,
+    dia: { name: 'Diabetes', short: 'Boss · heavily armoured', hp: 420, speed: 26, reward: 30, leak: 10, armor: 5, r: 19, pts: 3,
       fact: 'Diabetes is the leading cause of kidney failure. In Singapore it accounts for about 2 in 3 new cases. Yearly blood and urine checks catch damage early.' },
-    dehyd: { name: 'Dehydration', short: 'Very fast · fragile', hp: 10, speed: 150, reward: 4, leak: 3, armor: 0, r: 9, pts: 1,
+    dehyd: { name: 'Dehydration', short: 'Very fast · fragile', hp: 12, speed: 140, reward: 3, leak: 2, armor: 0, r: 9, pts: 1,
       fact: 'Losing fluid through heat, heavy sweating, vomiting or diarrhoea can cause acute kidney injury. Drink to thirst, and more in hot weather. Hydration towers deal triple damage to it.' },
-    smoke: { name: 'Smoking', short: 'Weakens towers · hides others', hp: 60, speed: 46, reward: 8, leak: 3, armor: 0, r: 12, pts: 2,
+    smoke: { name: 'Smoking', short: 'Weakens towers · hides others', hp: 70, speed: 46, reward: 8, leak: 2, armor: 0, r: 12, pts: 2,
       fact: 'Smoking damages blood vessels, speeds up kidney decline and raises heart risk. Its smoke slows nearby towers and hides the enemies travelling inside it.' },
-    obese: { name: 'Obesity', short: 'Mini-boss · splits', hp: 150, speed: 30, reward: 15, leak: 6, armor: 1, r: 16, pts: 3,
+    obese: { name: 'Obesity', short: 'Mini-boss · splits', hp: 180, speed: 30, reward: 14, leak: 5, armor: 2, r: 16, pts: 3,
       fact: 'Excess weight drives both diabetes and high blood pressure and adds to the kidneys’ workload. When stopped, it breaks apart into salt and sugar.' }
   };
   const ETYPES = ['salt', 'sugar', 'dehyd', 'pain', 'smoke', 'obese', 'hyp', 'dia'];
@@ -671,11 +680,11 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   // ---------- Rules ----------
   function stats(t) {
     const d = TOWERS[t.type], l = t.level - 1;
-    return { dmg: d.dmg * (1 + 0.6 * l), range: (d.range + 0.25 * l) * C, rate: d.rate * (1 - 0.1 * l),
+    return { dmg: d.dmg * (1 + 0.5 * l), range: (d.range + 0.3 * l) * C, rate: d.rate * (1 - 0.08 * l),
       splash: d.splash ? d.splash * C : 0, slow: d.slow || 0, slowDur: d.slowDur || 0,
       mark: d.support ? 0.25 + 0.1 * l : 0 };
   }
-  const upCost = t => Math.round(TOWERS[t.type].cost * 0.8 * t.level);
+  const upCost = t => Math.round(TOWERS[t.type].cost * (t.level === 1 ? 0.75 : 1.25));
   const refund = t => Math.round(t.spent * 0.6);
   const waveNo = () => (S.stage - 1) * PER_STAGE + S.waveInStage + 1;
 
@@ -692,7 +701,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     const q = [];
     while (groups.some(g => g.length)) for (const g of groups) if (g.length) q.push(g.shift());
     if (w === PER_STAGE) for (let i = 0; i < stage; i++) q.push({ type: (stage + i) % 2 === 1 ? 'hyp' : 'dia', gap: 2.4 });
-    return { q, mult: 1 + 0.11 * (n - 1) };
+    return { q, mult: Math.pow(1 + MODES[mode].growth, n - 1) };
   }
   function stageOf(g) {
     if (g >= 90) return ['G1', 'var(--good)'];
@@ -704,10 +713,18 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   }
 
   // ---------- State ----------
+  // Enemy health compounds each wave by the mode's growth rate; tuned with a simulated player.
+  const MODES = {
+    easy:   { name: 'Easy',   growth: 0.07, coins: 160, blurb: 'Gentler waves. Most players can finish.' },
+    medium: { name: 'Medium', growth: 0.12, coins: 120, blurb: 'The intended challenge. Stage 5 is the real test.' },
+    hard:   { name: 'Hard',   growth: 0.13, coins: 100, blurb: 'Tight energy and tougher waves. Every tower counts.' }
+  };
+  let mode = 'medium';
+  try { const m = localStorage.getItem('rtd-mode'); if (MODES[m]) mode = m; } catch (e) {}
   let S, autoPref = false, speedPref = 1;
   function reset() {
     S = {
-      coins: 150, egfr: 100, stage: 1, waveInStage: 0, inWave: false, queue: [], mult: 1, spawnT: 0,
+      coins: MODES[mode].coins, egfr: 100, stage: 1, waveInStage: 0, inWave: false, queue: [], mult: 1, spawnT: 0,
       enemies: [], towers: [], shots: [], rings: [], time: 0, paused: false, over: false, started: false,
       build: null, sel: null, hover: null, seen: new Set(), fact: null, kills: {}, score: 0, autoT: -1,
       banner: null, kHit: 0, leaked: 0
@@ -799,15 +816,27 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
         <div><b>25</b><span>Waves total</span></div>
       </div>
       <p class="note">Each stage brings a new, longer vessel: 2, 4, 6, 8, then 10 turns. Towers are refunded in full when the map changes, and premium towers unlock from stage 2.</p>
+      <div class="modes" role="radiogroup" aria-label="Difficulty">
+        ${Object.entries(MODES).map(([k, m]) => `<button type="button" class="mode" role="radio" data-mode="${k}" aria-checked="${k === mode}">
+          <b>${m.name}</b><span>${m.blurb}</span><small>${m.coins} starting energy</small></button>`).join('')}
+      </div>
       <button class="btn primary" id="go" type="button">Start game</button>`;
     overlay.hidden = false;
-    $('go').addEventListener('click', () => {
-      overlay.hidden = true; S.started = true;
-      SFX.init(); SFX.startMusic();
-      S.banner = { title: 'Stage 1 of 5', sub: `Wave 1 of 25 · ${MAP.turns}-turn vessel`, t: 2.4 };
-      if (autoPref) S.autoT = 2.4;
-    });
+    ov.querySelectorAll('.mode').forEach(b => b.addEventListener('click', () => {
+      mode = b.dataset.mode;
+      try { localStorage.setItem('rtd-mode', mode); } catch (e) {}
+      ov.querySelectorAll('.mode').forEach(x => x.setAttribute('aria-checked', String(x === b)));
+      S.coins = MODES[mode].coins;
+      SFX.init(); SFX.play('place');
+    }));
+    $('go').addEventListener('click', beginGame);
     $('go').focus();
+  }
+  function beginGame() {
+    reset(); overlay.hidden = true; S.started = true;
+    SFX.init(); SFX.startMusic();
+    S.banner = { title: 'Stage 1 of 5', sub: `${MODES[mode].name} · wave 1 of 25 · ${MAP.turns}-turn vessel`, t: 2.6 };
+    if (autoPref) S.autoT = 2.6;
   }
   function showScore(won) {
     const g = Math.round(S.egfr), [st] = stageOf(g);
@@ -827,12 +856,14 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
         <tbody>${rows}</tbody>
         <tfoot><tr><td>Total score</td><td></td><td></td><td>${S.score}</td></tr></tfoot>
       </table>
-      <p class="note">Wave ${reached} of 25 reached · ${S.leaked} threat${S.leaked === 1 ? '' : 's'} reached the kidney</p>
-      <button class="btn primary" id="again" type="button">Play again</button>`;
+      <p class="note">${MODES[mode].name} mode · wave ${reached} of 25 reached · ${S.leaked} threat${S.leaked === 1 ? '' : 's'} reached the kidney</p>
+      <div class="row" style="justify-content:center">
+        <button class="btn primary" id="again" type="button">Play again (${MODES[mode].name})</button>
+        <button class="btn" id="change" type="button">Change difficulty</button>
+      </div>`;
     overlay.hidden = false;
-    $('again').addEventListener('click', () => { reset(); S.started = true; overlay.hidden = true; SFX.init(); SFX.startMusic();
-      S.banner = { title: 'Stage 1 of 5', sub: `Wave 1 of 25 · ${MAP.turns}-turn vessel`, t: 2.4 };
-      if (autoPref) S.autoT = 2.4; });
+    $('again').addEventListener('click', beginGame);
+    $('change').addEventListener('click', () => { reset(); showTitle(); });
     $('again').focus();
   }
 
@@ -971,7 +1002,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
 
   function waveCleared() {
     const n = waveNo();
-    S.inWave = false; S.waveInStage++; S.coins += 20 + n * 3; SFX.setIntensity(false);
+    S.inWave = false; S.waveInStage++; S.coins += 10 + n * 2; SFX.setIntensity(false);
     if (S.waveInStage >= PER_STAGE) {
       if (S.stage >= STAGES) { end(true); return; }
       const back = S.towers.reduce((a, t) => a + t.spent, 0);
@@ -1223,6 +1254,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     }
     $('gfr').classList.toggle('hit', S.kHit > 0.2);
     setText('score', String(S.score));
+    setText('mode', MODES[mode].name);
     setText('coins', String(S.coins));
     setText('stage', `${S.stage} <small>/ 5</small>`, true);
     setText('wave', `${Math.min(PER_STAGE, S.waveInStage + 1)} <small>/ 5 · #${Math.min(TOTAL_WAVES, waveNo())}</small>`, true);
