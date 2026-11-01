@@ -1,5 +1,7 @@
 # Renal Tower Defense
 
+> **Branch `v2`: version 2.0 in testing.** Towers are animated kidney-bean mascots that take a 2×2 block, the kidney base reacts to its health, Hydration fires as a mortar, players can drag towers onto the board or tap to place them, mascots share kidney facts when tapped, and a Restart button replays a stage. The live game on `main` stays on v1.1.0 until this branch is merged.
+
 A browser tower defense game about protecting kidney health. Threats travel through the bloodstream toward the kidney; you place healthy-habit towers along the vessel to stop them.
 
 ## Play
