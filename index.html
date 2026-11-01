@@ -1136,75 +1136,262 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     for (let i = 0; i < 6; i++) { const a = rot + i / 6 * Math.PI * 2; g.lineTo(Math.cos(a) * r, Math.sin(a) * r); }
     g.closePath();
   }
-  function enemyShape(g, type, r, spin, t) {
-    g.lineJoin = 'round';
-    g.strokeStyle = P.ink; g.lineWidth = 1.8;
+  // Enemies, drawn in the mascot style: wine ink outline, glossy gradient, soft shadow and a villain face.
+  // Eyes follow the direction of travel; a hit makes them squeeze shut for a moment.
+  const EK = '#4a171c', TAU = Math.PI * 2;
+  function eEyes(g, x, y, s, gap, lx, ly, mood, lw, lid) {
+    for (const side of [-1, 1]) {
+      const ex = x + side * gap, ey = y;
+      g.strokeStyle = EK;
+      if (mood === 'hurt') {
+        const d = -side;
+        g.lineWidth = lw * 0.8; g.beginPath();
+        g.moveTo(ex - d * s * 0.8, ey - s); g.lineTo(ex + d * s * 0.8, ey); g.lineTo(ex - d * s * 0.8, ey + s); g.stroke();
+        continue;
+      }
+      g.fillStyle = '#fff'; g.beginPath(); g.ellipse(ex, ey, s, s * 1.2, 0, 0, TAU); g.fill();
+      const px = ex + lx * s * 0.38, py = ey + ly * s * 0.38;
+      g.fillStyle = '#1d1517'; g.beginPath(); g.arc(px, py, s * 0.56, 0, TAU); g.fill();
+      if (s >= 2.4) { g.fillStyle = '#fff'; g.beginPath(); g.arc(px + s * 0.18, py - s * 0.24, s * 0.18, 0, TAU); g.fill(); }
+      if (mood === 'tired' || mood === 'sly') {          // heavy lid
+        const cut = mood === 'tired' ? ey + s * 0.05 : ey - s * 0.4;
+        g.save(); g.beginPath(); g.ellipse(ex, ey, s, s * 1.2, 0, 0, TAU); g.clip();
+        g.fillStyle = lid; g.fillRect(ex - s * 1.2, ey - s * 1.4, s * 2.4, cut - (ey - s * 1.4)); g.restore();
+        g.lineWidth = lw * 0.6; g.beginPath(); g.moveTo(ex - s * 0.95, cut); g.lineTo(ex + s * 0.95, cut); g.stroke();
+      }
+      g.lineWidth = lw * 0.55; g.beginPath(); g.ellipse(ex, ey, s, s * 1.2, 0, 0, TAU); g.stroke();
+      if (mood === 'angry') {                             // brows slant down toward the middle
+        g.lineWidth = lw * 0.9; g.beginPath();
+        g.moveTo(ex + side * s * 1.15, ey - s * 1.85); g.lineTo(ex - side * s * 0.85, ey - s * 1.2); g.stroke();
+      }
+    }
+  }
+  function eMouth(g, x, y, w, type, lw) {
+    g.strokeStyle = EK; g.lineWidth = lw * 0.75;
+    if (type === 'grin') {
+      g.beginPath(); g.moveTo(x - w, y); g.quadraticCurveTo(x, y + w * 1.2, x + w, y); g.closePath();
+      g.fillStyle = '#5a1a20'; g.fill();
+      g.save(); g.clip(); g.fillStyle = '#fff'; g.fillRect(x - w, y - 1, w * 2, w * 0.38 + 1); g.restore();
+      g.stroke();
+    } else if (type === 'smirk') {
+      g.beginPath(); g.moveTo(x - w, y + w * 0.05); g.quadraticCurveTo(x + w * 0.15, y + w * 0.6, x + w, y - w * 0.4); g.stroke();
+    } else if (type === 'frown') {
+      g.beginPath(); g.moveTo(x - w, y + w * 0.35); g.quadraticCurveTo(x, y - w * 0.35, x + w, y + w * 0.35); g.stroke();
+    } else if (type === 'pant') {
+      g.beginPath(); g.ellipse(x, y, w * 0.62, w * 0.78, 0, 0, TAU); g.fillStyle = '#5a1a20'; g.fill();
+      g.save(); g.clip(); g.fillStyle = '#e8737f'; g.beginPath(); g.ellipse(x, y + w * 0.6, w * 0.5, w * 0.4, 0, 0, TAU); g.fill(); g.restore();
+      g.beginPath(); g.ellipse(x, y, w * 0.62, w * 0.78, 0, 0, TAU); g.stroke();
+    } else {                                              // 'growl': gritted teeth
+      g.beginPath(); g.roundRect(x - w, y - w * 0.36, w * 2, w * 0.72, w * 0.25);
+      g.fillStyle = '#fff'; g.fill(); g.stroke();
+      g.lineWidth = lw * 0.5; g.beginPath(); g.moveTo(x - w, y);
+      for (let i = 1; i <= 4; i++) g.lineTo(x - w + i * w / 2, y + (i % 2 ? -w * 0.2 : w * 0.2) * 0.9);
+      g.stroke();
+    }
+  }
+  function enemyShape(g, type, r, spin, t, e) {
+    const lw = 1.6 + r * 0.05, ph = e ? (e.ph || 0) : 0, hurt = !!(e && e.hurtT > 0), live = !!e;
+    let lx = 0.85, ly = 0.1;
+    if (e && e.lx != null) { lx = ROT ? -e.ly : e.lx; ly = ROT ? e.lx : e.ly; }
+    const dir = lx < -0.25 ? -1 : 1;
+    g.lineJoin = 'round'; g.lineCap = 'round';
+    const mood = m => hurt ? 'hurt' : m;
+    const grad = (y0, y1, c0, c1) => { const gr = g.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, c0); gr.addColorStop(1, c1); return gr; };
+    const ink = w => { g.strokeStyle = EK; g.lineWidth = w || lw; g.stroke(); };
+    const body = fill => { g.fillStyle = fill; g.fill(); if (hurt) { g.fillStyle = 'rgba(255,255,255,0.4)'; g.fill(); } ink(); };
+    const shadow = (w, y) => { g.fillStyle = 'rgba(0,0,0,0.28)'; g.beginPath(); g.ellipse(0, y, w, w * 0.3, 0, 0, TAU); g.fill(); };
+    const gloss = (x, y, rx, ry, rot) => { g.fillStyle = 'rgba(255,255,255,0.45)'; g.beginPath(); g.ellipse(x, y, rx, ry, rot, 0, TAU); g.fill(); };
+    const blush = (x, y, gap, s) => { g.fillStyle = 'rgba(255,120,135,0.45)'; for (const sd of [-1, 1]) { g.beginPath(); g.ellipse(x + sd * gap, y, s, s * 0.6, 0, 0, TAU); g.fill(); } };
+    const feet = (y, gap, col) => {
+      const j = live ? Math.sin(t * 7 + ph) : 0;
+      for (const [fx, lift] of [[-gap, Math.max(0, j)], [gap, Math.max(0, -j)]]) {
+        g.beginPath(); g.ellipse(fx, y - lift * r * 0.12, r * 0.3, r * 0.17, 0, 0, TAU); g.fillStyle = col; g.fill(); ink(lw * 0.85);
+      }
+    };
+    const speedLines = len => {
+      if (!live) return;
+      g.strokeStyle = 'rgba(243,233,229,0.5)'; g.lineWidth = lw * 0.7;
+      [-0.4, 0, 0.4].forEach((yy, i) => {
+        const k = 0.6 + 0.4 * Math.sin(t * 14 + ph + i * 2);
+        g.beginPath(); g.moveTo(-len - r * 0.25, yy * r); g.lineTo(-len - r * (0.25 + 0.75 * k), yy * r); g.stroke();
+      });
+    };
+    const ring = (col, k) => {
+      const p = 1 + Math.sin(t * k) * 0.08;
+      g.strokeStyle = col; g.lineWidth = 2; g.globalAlpha = 0.5;
+      g.beginPath(); g.arc(0, -r * 0.05, r * 1.38 * p, 0, TAU); g.stroke(); g.globalAlpha = 1;
+    };
+
     if (type === 'salt') {
-      g.rotate(spin);
-      const a = r * 0.82;
-      g.fillStyle = '#f4f1ec'; g.fillRect(-a, -a, a * 2, a * 2); g.strokeRect(-a, -a, a * 2, a * 2);
-      g.fillStyle = '#cfc8c1'; g.beginPath(); g.moveTo(a, -a); g.lineTo(a, a); g.lineTo(-a, a); g.closePath(); g.globalAlpha = 0.5; g.fill(); g.globalAlpha = 1;
-      g.strokeRect(-a, -a, a * 2, a * 2);
-    } else if (type === 'sugar') {
-      g.rotate(spin * 0.4);
-      g.fillStyle = '#f2a3c4'; hexPath(g, r); g.fill(); g.stroke();
-      g.strokeStyle = '#7a2a4f'; g.lineWidth = 1.6; hexPath(g, r * 0.48); g.stroke();
-    } else if (type === 'pain') {
-      g.rotate(spin * 0.5);
-      g.fillStyle = '#5cc6b8'; g.beginPath(); g.roundRect(-r * 1.3, -r * .62, r * 2.6, r * 1.24, r * .62); g.fill();
-      g.fillStyle = '#f4f1ec'; g.beginPath(); g.roundRect(0, -r * .62, r * 1.3, r * 1.24, [0, r * .62, r * .62, 0]); g.fill();
-      g.beginPath(); g.roundRect(-r * 1.3, -r * .62, r * 2.6, r * 1.24, r * .62); g.stroke();
-      g.beginPath(); g.moveTo(0, -r * .62); g.lineTo(0, r * .62); g.stroke();
-    } else if (type === 'hyp') {
-      const p = 1 + Math.sin(t * 6) * 0.1;
-      g.strokeStyle = '#ff6b5e'; g.lineWidth = 2; g.globalAlpha = 0.55;
-      g.beginPath(); g.arc(0, 0, r * 1.35 * p, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1;
-      g.fillStyle = '#ff6b5e'; g.strokeStyle = P.ink; g.lineWidth = 2;
-      g.beginPath(); g.arc(0, 0, r * p, 0, Math.PI * 2); g.fill(); g.stroke();
-      g.fillStyle = '#2a1012'; g.font = `800 ${Math.round(r * 0.8)}px "JetBrains Mono", monospace`;
-      g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('BP', 0, 1);
-    } else if (type === 'dehyd') {
-      // a dried-out, cracked droplet
-      g.fillStyle = '#e3a463';
-      g.beginPath(); g.moveTo(0, -r * 1.25);
-      g.bezierCurveTo(r * 0.95, -r * 0.1, r * 0.95, r * 0.95, 0, r * 0.95);
-      g.bezierCurveTo(-r * 0.95, r * 0.95, -r * 0.95, -r * 0.1, 0, -r * 1.25);
-      g.closePath(); g.fill(); g.stroke();
-      g.strokeStyle = '#5a3415'; g.lineWidth = 1.5;
-      g.beginPath(); g.moveTo(-r * 0.05, -r * 0.7); g.lineTo(r * 0.2, -r * 0.25); g.lineTo(-r * 0.15, r * 0.1); g.lineTo(r * 0.15, r * 0.6); g.stroke();
-      g.beginPath(); g.moveTo(r * 0.2, -r * 0.25); g.lineTo(r * 0.5, -r * 0.05); g.stroke();
-    } else if (type === 'smoke') {
-      // cigarette with a lit tip and a curl of smoke
-      g.rotate(-0.45);
-      const L = r * 2.4, h = r * 0.55, x0 = -L / 2;
-      g.fillStyle = '#f4f1ec'; g.fillRect(x0, -h / 2, L, h);
-      g.fillStyle = '#d98b3a'; g.fillRect(x0, -h / 2, L * 0.3, h);
-      g.fillStyle = '#ff6b3d'; g.fillRect(x0 + L - r * 0.28, -h / 2, r * 0.28, h);
-      g.strokeRect(x0, -h / 2, L, h);
-      g.strokeStyle = 'rgba(200,190,195,0.85)'; g.lineWidth = 1.6; g.lineCap = 'round';
-      const sx = x0 + L;
-      g.beginPath(); g.moveTo(sx, -h); g.bezierCurveTo(sx + r * 0.5, -r * 0.9, sx - r * 0.2, -r * 1.3, sx + r * 0.3, -r * 1.8); g.stroke();
-    } else if (type === 'obese') {
-      // a round body cinched by a measuring tape
-      const p = 1 + Math.sin(t * 3) * 0.04;
-      g.scale(p, 1 / p);
-      g.fillStyle = '#e0b48a'; g.beginPath(); g.arc(0, 0, r, 0, Math.PI * 2); g.fill(); g.stroke();
-      g.save(); g.beginPath(); g.arc(0, 0, r - 1, 0, Math.PI * 2); g.clip();
-      g.fillStyle = '#f2c94c'; g.fillRect(-r, -r * 0.2, r * 2, r * 0.42);
-      g.strokeStyle = P.ink; g.lineWidth = 1;
-      for (let i = -r + 3; i < r; i += 4) { g.beginPath(); g.moveTo(i, -r * 0.2); g.lineTo(i, -r * 0.2 + (Math.round(i) % 8 === 0 ? 6 : 3.5)); g.stroke(); }
+      // a grumpy salt crystal that hops along
+      const hop = live ? Math.abs(Math.sin(t * 9 + ph)) : 0.4, a = r * 0.92;
+      shadow(r * 0.8 * (1 - hop * 0.2), r * 1.0);
+      g.save(); g.translate(0, -hop * r * 0.3); g.rotate(live ? Math.sin(t * 9 + ph) * 0.08 : 0);
+      g.beginPath(); g.roundRect(-a, -a, a * 2, a * 2, a * 0.34); body(grad(-a, a, '#ffffff', '#cfc6be'));
+      g.strokeStyle = 'rgba(74,23,28,0.22)'; g.lineWidth = lw * 0.5;
+      g.beginPath(); g.moveTo(a * 0.42, -a * 0.98); g.lineTo(a * 0.98, -a * 0.42); g.stroke();
+      gloss(-a * 0.5, -a * 0.58, a * 0.3, a * 0.14, -0.4);
+      blush(0, a * 0.36, r * 0.62, r * 0.14);
+      eEyes(g, 0, -a * 0.1, r * 0.25, r * 0.4, lx, ly, mood('angry'), lw, '#e8e2dc');
+      eMouth(g, 0, a * 0.4, r * 0.27, 'grin', lw);
       g.restore();
-      g.strokeStyle = P.ink; g.lineWidth = 1.8;
-      g.beginPath(); g.moveTo(-r, -r * 0.2); g.lineTo(r, -r * 0.2); g.moveTo(-r, r * 0.22); g.lineTo(r, r * 0.22); g.stroke();
-      g.fillStyle = '#3e2c31'; g.fillRect(-r * 0.12, -r * 0.3, r * 0.24, r * 0.62);
+    } else if (type === 'sugar') {
+      // a sly sugar crystal with a sparkle
+      const wob = live ? Math.sin(t * 5 + ph) * 0.08 : 0;
+      shadow(r * 0.85, r * 0.98);
+      g.save(); g.rotate(wob);
+      hexPath(g, r); body(grad(-r, r, '#fcd6e7', '#d6649a'));
+      g.strokeStyle = 'rgba(255,255,255,0.6)'; g.lineWidth = lw * 0.6;
+      g.beginPath(); g.moveTo(-r * 0.62, -r * 0.6); g.lineTo(-r * 0.3, -r * 0.6); g.stroke();
+      gloss(-r * 0.3, -r * 0.48, r * 0.24, r * 0.1, 0);
+      if (live && Math.sin(t * 3 + ph) > 0.6) { g.fillStyle = '#fff'; g.beginPath(); g.arc(r * 0.72, -r * 0.62, r * 0.12, 0, TAU); g.fill(); }
+      blush(0, r * 0.3, r * 0.6, r * 0.14);
+      eEyes(g, 0, -r * 0.12, r * 0.24, r * 0.38, lx, ly, mood('sly'), lw, '#ef9cc1');
+      eMouth(g, 0, r * 0.4, r * 0.3, 'smirk', lw);
+      g.restore();
+    } else if (type === 'pain') {
+      // a manic capsule that dashes nose-first
+      g.save(); g.scale(dir, 1);
+      const hw = r * 1.4, hh = r * 0.76, bob = live ? Math.sin(t * 16 + ph) * r * 0.06 : 0;
+      speedLines(hw);
+      shadow(r * 1.15, r * 1.0);
+      g.translate(0, bob); g.rotate(-0.1);
+      const cap = () => { g.beginPath(); g.roundRect(-hw, -hh, hw * 2, hh * 2, hh); };
+      cap(); g.fillStyle = grad(-hh, hh, '#86e3d6', '#2c9488'); g.fill();
+      g.save(); cap(); g.clip(); g.fillStyle = grad(-hh, hh, '#ffffff', '#d6cfc8'); g.fillRect(0, -hh, hw, hh * 2); g.restore();
+      if (hurt) { cap(); g.fillStyle = 'rgba(255,255,255,0.4)'; g.fill(); }
+      cap(); ink();
+      g.beginPath(); g.moveTo(0, -hh); g.lineTo(0, hh); ink(lw * 0.7);
+      gloss(-hw * 0.45, -hh * 0.55, hw * 0.28, hh * 0.18, 0);
+      eEyes(g, r * 0.32, -r * 0.14, r * 0.24, r * 0.42, lx * dir, ly, mood('angry'), lw);
+      eMouth(g, r * 0.32, r * 0.3, r * 0.3, 'grin', lw);
+      g.restore();
+    } else if (type === 'hyp') {
+      // boss: a furious red blob squeezed by a blood-pressure cuff, steaming at the top
+      ring('#ff6b5e', 6);
+      const p = 1 + Math.sin(t * 6) * 0.07;
+      shadow(r * 0.95, r * 1.02);
+      feet(r * 0.92, r * 0.45, '#8e2c33');
+      g.save(); g.scale(p, p);
+      if (live) for (let i = 0; i < 2; i++) {
+        const k = (t * 1.1 + i * 0.5 + ph * 0.1) % 1;
+        g.globalAlpha = (1 - k) * 0.75; g.fillStyle = '#f3e9e5';
+        g.beginPath(); g.arc((i ? 1 : -1) * r * 0.42, -r * 1.02 - k * r * 0.55, r * 0.17 * (1 - k * 0.3), 0, TAU); g.fill();
+      }
+      g.globalAlpha = 1;
+      const circ = () => { g.beginPath(); g.arc(0, 0, r, 0, TAU); };
+      // cuff tube and pump bulb, behind the body edge
+      g.beginPath(); g.moveTo(r * 0.8, r * 0.5); g.quadraticCurveTo(r * 1.3, r * 0.55, r * 1.22, r * 0.98); ink(lw + 1.6);
+      g.strokeStyle = '#3b3f47'; g.lineWidth = lw * 0.7; g.stroke();
+      g.beginPath(); g.ellipse(r * 1.22, r * 1.02, r * 0.17, r * 0.22, 0, 0, TAU); g.fillStyle = '#3b3f47'; g.fill(); ink(lw * 0.8);
+      circ(); g.fillStyle = grad(-r, r, '#ff9a8a', '#c3303a'); g.fill(); if (hurt) { g.fillStyle = 'rgba(255,255,255,0.4)'; g.fill(); }
+      g.save(); circ(); g.clip();
+      g.fillStyle = grad(r * 0.2, r * 0.75, '#7c8492', '#4a515c'); g.fillRect(-r, r * 0.2, r * 2, r * 0.55);
+      g.fillStyle = '#f3e9e5'; g.font = `800 ${Math.round(r * 0.36)}px "JetBrains Mono", monospace`;
+      g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText('BP', 0, r * 0.49);
+      g.restore();
+      for (const yy of [r * 0.2, r * 0.75]) { const xx = Math.sqrt(r * r - yy * yy); g.beginPath(); g.moveTo(-xx, yy); g.lineTo(xx, yy); ink(lw * 0.8); }
+      circ(); ink();
+      gloss(-r * 0.42, -r * 0.55, r * 0.26, r * 0.13, -0.5);
+      // anger mark
+      g.strokeStyle = '#7a1520'; g.lineWidth = lw * 0.75;
+      const vx = r * 0.58, vy = -r * 0.6, vs = r * 0.13;
+      for (let i = 0; i < 4; i++) { const a = i * Math.PI / 2 + Math.PI / 4; g.beginPath(); g.arc(vx + Math.cos(a) * vs * 1.4, vy + Math.sin(a) * vs * 1.4, vs, a + Math.PI * 0.7, a + Math.PI * 1.3); g.stroke(); }
+      eEyes(g, -r * 0.05, -r * 0.3, r * 0.17, r * 0.32, lx, ly, mood('angry'), lw);
+      eMouth(g, -r * 0.05, -r * 0.0, r * 0.24, 'growl', lw);
+      g.restore();
+    } else if (type === 'dehyd') {
+      // a parched, cracked droplet, panting as it rushes ahead
+      g.save(); g.scale(dir, 1);
+      speedLines(r * 0.8);
+      shadow(r * 0.75, r * 1.02);
+      const hop = live ? Math.abs(Math.sin(t * 12 + ph)) * r * 0.14 : 0;
+      g.translate(0, -hop); g.rotate(0.12);
+      g.beginPath(); g.moveTo(0, -r * 1.3);
+      g.bezierCurveTo(r * 1.0, -r * 0.1, r * 1.0, r * 0.95, 0, r * 0.95);
+      g.bezierCurveTo(-r * 1.0, r * 0.95, -r * 1.0, -r * 0.1, 0, -r * 1.3);
+      g.closePath(); body(grad(-r * 1.3, r * 0.95, '#f7cf93', '#c7743a'));
+      g.strokeStyle = '#7a4318'; g.lineWidth = lw * 0.5;
+      g.beginPath(); g.moveTo(-r * 0.1, -r * 1.05); g.lineTo(r * 0.06, -r * 0.8); g.lineTo(-r * 0.08, -r * 0.6); g.stroke();
+      g.beginPath(); g.moveTo(-r * 0.75, r * 0.3); g.lineTo(-r * 0.5, r * 0.42); g.lineTo(-r * 0.58, r * 0.62); g.stroke();
+      gloss(-r * 0.35, -r * 0.3, r * 0.14, r * 0.26, 0.4);
+      blush(r * 0.1, r * 0.3, r * 0.55, r * 0.13);
+      eEyes(g, r * 0.1, -r * 0.05, r * 0.23, r * 0.37, lx * dir, ly, mood('tired'), lw, '#e4a160');
+      eMouth(g, r * 0.1, r * 0.5, r * 0.28, 'pant', lw);
+      g.restore();
+    } else if (type === 'smoke') {
+      // a smug cigarette standing on its filter, ember glowing on top
+      const sway = live ? Math.sin(t * 2.2 + ph) * 0.1 : 0.06;
+      shadow(r * 0.62, r * 1.18);
+      g.save(); g.rotate(sway);
+      const w = r * 1.3, y0 = -r * 1.3, h = r * 2.4, glow = 0.6 + 0.4 * Math.sin(t * 5 + ph);
+      const stick = () => { g.beginPath(); g.roundRect(-w / 2, y0, w, h, w * 0.28); };
+      stick(); g.fillStyle = grad(y0, y0 + h, '#fdfaf6', '#d4cbc2'); g.fill();
+      g.save(); stick(); g.clip();
+      g.fillStyle = grad(y0 + h * 0.68, y0 + h, '#eaa45c', '#c0723a'); g.fillRect(-w / 2, y0 + h * 0.68, w, h * 0.32);
+      g.fillStyle = 'rgba(122,60,20,0.45)';
+      for (const [sx, sy] of [[-0.22, 0.76], [0.18, 0.82], [-0.05, 0.9], [0.26, 0.94], [-0.28, 0.96]]) { g.beginPath(); g.arc(sx * w, y0 + sy * h, r * 0.06, 0, TAU); g.fill(); }
+      g.fillStyle = '#8d8389'; g.fillRect(-w / 2, y0, w, h * 0.12);
+      g.fillStyle = `rgba(255,${100 + 40 * glow},50,1)`; g.fillRect(-w / 2, y0, w, h * 0.06);
+      if (hurt) { g.fillStyle = 'rgba(255,255,255,0.4)'; g.fillRect(-w / 2, y0, w, h); }
+      g.restore();
+      g.beginPath(); g.moveTo(-w / 2, y0 + h * 0.68); g.lineTo(w / 2, y0 + h * 0.68); ink(lw * 0.7);
+      g.beginPath(); g.moveTo(-w / 2, y0 + h * 0.12); g.lineTo(w / 2, y0 + h * 0.12); ink(lw * 0.6);
+      stick(); ink();
+      g.fillStyle = `rgba(255,130,60,${0.25 * glow})`; g.beginPath(); g.arc(0, y0, r * 0.62, 0, TAU); g.fill();
+      gloss(-w * 0.22, y0 + h * 0.3, w * 0.1, h * 0.12, 0);
+      if (live) {
+        g.strokeStyle = 'rgba(214,205,210,0.85)'; g.lineWidth = 1.6;
+        const d = Math.sin(t * 2 + ph) * r * 0.2;
+        g.beginPath(); g.moveTo(0, y0 - 2); g.bezierCurveTo(r * 0.5 + d, y0 - r * 0.35, -r * 0.3 + d, y0 - r * 0.65, r * 0.35, y0 - r * 0.95); g.stroke();
+      }
+      blush(0, -r * 0.08, r * 0.46, r * 0.11);
+      eEyes(g, 0, -r * 0.42, r * 0.22, r * 0.31, lx, ly, mood('sly'), lw, '#e3dbd2');
+      eMouth(g, 0, -r * 0.04, r * 0.24, 'smirk', lw);
+      g.restore();
+    } else if (type === 'obese') {
+      // a heavy, grumpy body cinched by a measuring tape, waddling
+      const p = 1 + Math.sin(t * 3 + ph) * 0.04;
+      shadow(r * 0.95, r * 1.02);
+      feet(r * 0.92, r * 0.45, '#a8714a');
+      g.save(); g.scale(p, 1 / p);
+      const circ = () => { g.beginPath(); g.arc(0, 0, r, 0, TAU); };
+      circ(); g.fillStyle = grad(-r, r, '#f6d3ad', '#c3875a'); g.fill(); if (hurt) { g.fillStyle = 'rgba(255,255,255,0.4)'; g.fill(); }
+      g.save(); circ(); g.clip();
+      const b0 = r * 0.22, b1 = r * 0.52;
+      g.fillStyle = '#f2c94c'; g.fillRect(-r, b0, r * 2, b1 - b0);
+      g.strokeStyle = EK; g.lineWidth = 1;
+      for (let i = -r + 3, n = 0; i < r; i += 4, n++) { g.beginPath(); g.moveTo(i, b0); g.lineTo(i, b0 + (n % 2 ? 3 : 5.5)); g.stroke(); }
+      g.restore();
+      for (const yy of [b0, b1]) { const xx = Math.sqrt(r * r - yy * yy); g.beginPath(); g.moveTo(-xx, yy); g.lineTo(xx, yy); ink(lw * 0.8); }
+      g.beginPath(); g.roundRect(r * 0.5, b0 - r * 0.04, r * 0.22, b1 - b0 + r * 0.08, 2); g.fillStyle = '#e0a83a'; g.fill(); ink(lw * 0.7);
+      circ(); ink();
+      gloss(-r * 0.45, -r * 0.55, r * 0.26, r * 0.12, -0.5);
+      blush(0, -r * 0.08, r * 0.5, r * 0.13);
+      eEyes(g, 0, -r * 0.36, r * 0.17, r * 0.3, lx, ly, mood('angry'), lw);
+      eMouth(g, 0, -r * 0.02, r * 0.2, 'frown', lw);
+      g.restore();
     } else {
-      const p = 1 + Math.sin(t * 4) * 0.06;
-      g.strokeStyle = '#d96aa0'; g.lineWidth = 2; g.globalAlpha = 0.5;
-      g.beginPath(); g.arc(0, 0, r * 1.3 * p, 0, Math.PI * 2); g.stroke(); g.globalAlpha = 1;
-      g.rotate(spin * 0.15);
-      g.fillStyle = '#b8478a'; g.strokeStyle = P.ink; g.lineWidth = 2;
-      const offs = [[0, -r * 0.42], [-r * 0.46, r * 0.3], [r * 0.46, r * 0.3]];
-      for (const [x, y] of offs) { g.save(); g.translate(x, y); hexPath(g, r * 0.56); g.fill(); g.stroke(); g.strokeStyle = '#f2a3c4'; g.lineWidth = 1.4; hexPath(g, r * 0.26); g.stroke(); g.restore(); }
+      // boss: a crystal king of sugar, crowned with smaller crystals
+      ring('#d96aa0', 4);
+      const p = 1 + Math.sin(t * 4) * 0.04;
+      shadow(r * 0.95, r * 0.98);
+      feet(r * 0.86, r * 0.45, '#6e2450');
+      g.save(); g.scale(p, p);
+      for (const [cx, cy, sw, sh, rot] of [[-r * 0.52, -r * 0.82, r * 0.2, r * 0.42, -0.4], [r * 0.52, -r * 0.82, r * 0.2, r * 0.42, 0.4], [0, -r * 0.98, r * 0.24, r * 0.52, 0]]) {
+        g.save(); g.translate(cx, cy); g.rotate(rot);
+        g.beginPath(); g.moveTo(0, -sh); g.lineTo(sw, -sh * 0.45); g.lineTo(sw, sh * 0.5); g.lineTo(0, sh * 0.75); g.lineTo(-sw, sh * 0.5); g.lineTo(-sw, -sh * 0.45); g.closePath();
+        body(grad(-sh, sh, '#fde6f0', '#e07aad'));
+        g.strokeStyle = 'rgba(255,255,255,0.6)'; g.lineWidth = lw * 0.5; g.beginPath(); g.moveTo(-sw * 0.4, -sh * 0.4); g.lineTo(-sw * 0.4, sh * 0.35); g.stroke();
+        g.restore();
+      }
+      hexPath(g, r); body(grad(-r, r, '#d978b4', '#77275a'));
+      g.strokeStyle = 'rgba(255,255,255,0.35)'; g.lineWidth = lw * 0.6;
+      g.beginPath(); g.moveTo(-r * 0.78, -r * 0.3); g.lineTo(-r * 0.55, -r * 0.68); g.stroke();
+      gloss(-r * 0.3, -r * 0.55, r * 0.22, r * 0.09, 0);
+      eEyes(g, 0, -r * 0.18, r * 0.17, r * 0.32, lx, ly, mood('angry'), lw);
+      eMouth(g, 0, r * 0.3, r * 0.26, 'growl', lw);
+      g.restore();
     }
   }
   function iconCanvas(size, draw) {
@@ -1391,7 +1578,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   ETYPES.forEach(k => {
     const d = ENEMIES[k], li = document.createElement('li'), b = document.createElement('button');
     b.type = 'button'; b.className = 'erow idle';
-    b.appendChild(iconCanvas(34, g => { const sc = Math.min(1, 12 / d.r); g.scale(sc, sc); enemyShape(g, k, d.r, 0.3, 0); }));
+    b.appendChild(iconCanvas(34, g => { const sc = Math.min(1, 12 / d.r) * (k === 'smoke' || k === 'dia' ? 0.85 : 1); g.scale(sc, sc); enemyShape(g, k, d.r, 0.3, 0); }));
     const tx = document.createElement('span');
     tx.innerHTML = `<span class="en">${d.name}</span><br><span class="ed">${d.short} · ${d.pts} pt${d.pts > 1 ? 's' : ''}</span>`;
     const cnt = document.createElement('span'); cnt.className = 'ec';
@@ -1400,7 +1587,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     b.addEventListener('click', () => { S.fact = { kind: 'enemy', key: k }; S.sel = null; panelKey = ''; });
     li.appendChild(b); $('elist').appendChild(li);
     const chip = document.createElement('button'); chip.type = 'button'; chip.className = 'echip'; chip.hidden = true;
-    chip.appendChild(iconCanvas(26, g => { const sc = Math.min(1, 10 / d.r); g.scale(sc, sc); enemyShape(g, k, d.r, 0.3, 0); }));
+    chip.appendChild(iconCanvas(26, g => { const sc = Math.min(1, 10 / d.r) * (k === 'smoke' || k === 'dia' ? 0.85 : 1); g.scale(sc, sc); enemyShape(g, k, d.r, 0.3, 0); }));
     const cc = document.createElement('span'); cc.textContent = '0'; chip.appendChild(cc);
     chip.setAttribute('aria-label', d.name);
     chip.addEventListener('click', () => { S.fact = { kind: 'enemy', key: k }; S.sel = null; panelKey = ''; hint(`${d.name} · ${d.short}`); });
@@ -1627,7 +1814,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     ov.querySelectorAll('[data-t]').forEach(td => { const k = td.dataset.t; td.appendChild(iconCanvas(36, g => {
       g.fillStyle = '#1d1517'; g.strokeStyle = TOWERS[k].color; g.lineWidth = 2; g.beginPath(); g.roundRect(-16, -16, 32, 32, 7); g.fill(); g.stroke();
       Mascot.setLevel(1); Mascot.drawRig(g, 0, 12, 0.22, Mascot.newState(), Mascot.CFG[MK[k]], 0, false); })); });
-    ov.querySelectorAll('[data-e]').forEach(td => { const k = td.dataset.e, d = ENEMIES[k]; td.appendChild(iconCanvas(36, g => { const sc = Math.min(1, 13 / d.r); g.scale(sc, sc); enemyShape(g, k, d.r, 0.3, 0); })); });
+    ov.querySelectorAll('[data-e]').forEach(td => { const k = td.dataset.e, d = ENEMIES[k]; td.appendChild(iconCanvas(36, g => { const sc = Math.min(1, 13 / d.r) * (k === 'smoke' || k === 'dia' ? 0.85 : 1); g.scale(sc, sc); enemyShape(g, k, d.r, 0.3, 0); })); });
     $('gclose').addEventListener('click', () => { if (fromTitle) showTitle(); else { overlay.hidden = true; S.paused = wasPaused; } });
     $('gclose').focus({ preventScroll: true });
   }
@@ -1772,10 +1959,11 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   // ---------- Simulation ----------
   function spawn(type, dist = 0, into = S.enemies) {
     const d = ENEMIES[type], hp = Math.round(d.hp * S.mult * ENEMY_HP), p = posAt(Math.max(0, dist));
-    into.push({ type, d, hp, max: hp, dist: Math.max(0, dist), slowUntil: 0, slowMul: 1, x: p.x, y: p.y, spin: Math.random() * 6 });
+    into.push({ type, d, hp, max: hp, dist: Math.max(0, dist), slowUntil: 0, slowMul: 1, x: p.x, y: p.y, spin: Math.random() * 6, ph: Math.random() * 6, lx: 1, ly: 0, hurtT: 0 });
     if (!S.seen.has(type)) { S.seen.add(type); if (!S.sel) { S.fact = { kind: 'enemy', key: type }; panelKey = ''; } }
   }
   const hurt = (e, dmg, src) => {
+    e.hurtT = 0.15;
     let bonus = 1;
     if (src === 'flush' && e.type === 'dehyd') bonus = HYDRATION_BONUS;
     if (src === 'quit' && e.type === 'smoke') { e.hp = 0; return; }   // Quit smoking destroys a Smoking enemy outright
@@ -1810,7 +1998,10 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       const m = S.time < e.slowUntil ? e.slowMul : 1;
       e.dist += e.d.speed * m * dt;
       e.spin += dt * (e.type === 'salt' ? 2.5 : 1);
-      const p = posAt(e.dist); e.x = p.x; e.y = p.y;
+      const p = posAt(e.dist), vx = p.x - e.x, vy = p.y - e.y, vl = Math.hypot(vx, vy);
+      if (vl > 0.01) { const k = Math.min(1, dt * 10); e.lx += (vx / vl - e.lx) * k; e.ly += (vy / vl - e.ly) * k; }
+      if (e.hurtT > 0) e.hurtT = Math.max(0, e.hurtT - dt);
+      e.x = p.x; e.y = p.y;
       if (e.dist >= MAP.total) {
         e.dead = true; S.leaked++;
         S.egfr = Math.max(0, S.egfr - e.d.leak); S.kHit = 0.4; SFX.play('leak');
@@ -2063,7 +2254,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   function upright(x, y) { ctx.save(); ctx.translate(x, y); if (ROT) ctx.rotate(-Math.PI / 2); }
   function hpBar(e) {
     if (e.hp >= e.max) return;
-    const w = Math.max(20, e.d.r * 2.2), f = Math.max(0, e.hp / e.max), top = -e.d.r - 11;
+    const w = Math.max(20, e.d.r * 2.2), f = Math.max(0, e.hp / e.max), top = -e.d.r * (e.type === 'dia' ? 1.55 : 1) - 11;
     upright(e.x, e.y);
     ctx.fillStyle = 'rgba(23,17,19,0.85)'; ctx.fillRect(-w / 2, top, w, 4);
     ctx.fillStyle = f > 0.5 ? P.good : f > 0.25 ? P.warn : P.bad; ctx.fillRect(-w / 2, top, w * f, 4);
@@ -2072,7 +2263,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   function drawEnemy(e) {
     upright(e.x, e.y);
     if (S.time < e.slowUntil) { ctx.strokeStyle = '#c79be6'; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, e.d.r + 5, 0, Math.PI * 2); ctx.stroke(); }
-    enemyShape(ctx, e.type, e.d.r, e.spin, S.time);
+    enemyShape(ctx, e.type, e.d.r, e.spin, S.time, e);
     ctx.restore();
     hpBar(e);
   }
@@ -2094,7 +2285,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     ctx.beginPath(); ctx.arc(e.x, e.y, 22, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
     // keep the smoker itself readable on top of its own cloud
-    upright(e.x, e.y); enemyShape(ctx, 'smoke', e.d.r, e.spin, S.time); ctx.restore();
+    upright(e.x, e.y); enemyShape(ctx, 'smoke', e.d.r, e.spin, S.time, e); ctx.restore();
     hpBar(e);
   }
   function drawShot(s) {
@@ -2156,7 +2347,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
         ctx.beginPath(); ctx.moveTo(e.x + sx * r, e.y + sy * (r - k)); ctx.lineTo(e.x + sx * r, e.y + sy * r); ctx.lineTo(e.x + sx * (r - k), e.y + sy * r); ctx.stroke();
       }
       if (e.type !== 'smoke' && S.enemies.some(o => o.type === 'smoke' && !o.cleared && Math.hypot(o.x - e.x, o.y - e.y) <= SMOKE_R)) {
-        upright(e.x, e.y); enemyShape(ctx, e.type, e.d.r, e.spin, S.time); ctx.restore();
+        upright(e.x, e.y); enemyShape(ctx, e.type, e.d.r, e.spin, S.time, e); ctx.restore();
       }
     }
     drawKidney();
@@ -2218,19 +2409,41 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
          'Planning for dialysis early makes the start safer and smoother.']
   };
   const ROLE_QUOTES = {
-    diet: 'Less salt and sugar on the plate means less work for your kidneys.',
-    flush: 'Sip water through the day, and more when it is hot, because dehydration can hurt kidneys fast.',
-    reg: 'High blood pressure scars kidney vessels, so I keep it in check.',
-    ex: 'Moving 150 minutes a week helps your blood pressure, blood sugar and weight.',
-    quit: 'Smoking damages blood vessels, including the ones that feed your kidneys.',
-    screen: 'A blood test and a urine test together catch kidney damage early.',
-    med: 'Take medicines as prescribed, and check with a pharmacist before using painkillers often.'
+    diet: ['Less salt and sugar on the plate means less work for your kidneys.',
+           'Most of the salt we eat hides in processed and restaurant food, so fresh is best.',
+           'Diabetes is a leading cause of kidney failure, and a balanced plate helps prevent it.',
+           'Vegetables, whole grains and lean protein make a plate your kidneys will thank you for.'],
+    flush: ['Sip water through the day, and more when it is hot, because dehydration can hurt kidneys fast.',
+            'Pale yellow urine is a simple sign that you are drinking enough.',
+            'Drinking enough water helps prevent kidney stones.',
+            'If your doctor limits fluids because of kidney disease, follow their advice over mine.'],
+    reg: ['High blood pressure scars kidney vessels, so I keep it in check.',
+          'High blood pressure usually has no symptoms, so measure it regularly.',
+          'It works both ways: high blood pressure harms kidneys, and damaged kidneys raise blood pressure.',
+          'Less salt, regular exercise and prescribed medicine all help bring blood pressure down.'],
+    ex: ['Moving 150 minutes a week helps your blood pressure, blood sugar and weight.',
+         'A brisk walk counts, and short bursts of activity add up through the week.',
+         'Strength exercises twice a week keep your muscles and bones strong.',
+         'A healthy weight lowers the risk of diabetes and high blood pressure, the two biggest threats to kidneys.'],
+    quit: ['Smoking damages blood vessels, including the ones that feed your kidneys.',
+           'Smoking makes existing kidney disease get worse faster.',
+           'Smoking is a major risk factor for kidney cancer.',
+           'Quitting helps at any age, and support like counselling or nicotine replacement makes it more likely to stick.'],
+    screen: ['A blood test and a urine test together catch kidney damage early.',
+             'Early kidney disease usually has no symptoms, so testing is the only way to know.',
+             'If you have diabetes or high blood pressure, get your kidneys checked at least once a year.',
+             'Kidney disease in the family is a good reason to get checked too.'],
+    med: ['Take medicines as prescribed, and check with a pharmacist before using painkillers often.',
+          'Some blood pressure medicines also protect the kidneys from further damage.',
+          'Bring a list of all your medicines, supplements and herbal remedies to every check-up.',
+          'Never stop or change a medicine without talking to your doctor first.']
   };
   function pickQuote(t) {
-    const [st] = stageOf(Math.round(S.egfr)), pool = QUOTES[st] || QUOTES.G4;
-    let line = Math.random() < 0.35 ? ROLE_QUOTES[t.type] : pool[Math.floor(Math.random() * pool.length)];
-    if (line === t.quote) line = line === ROLE_QUOTES[t.type] ? pool[0] : pool[(pool.indexOf(line) + 1) % pool.length];
-    return { text: line, stage: st, role: line === ROLE_QUOTES[t.type] };
+    const [st] = stageOf(Math.round(S.egfr)), pool = QUOTES[st] || QUOTES.G4, roles = ROLE_QUOTES[t.type] || pool;
+    const role = Math.random() < 0.35, src = role ? roles : pool;
+    let line = src[Math.floor(Math.random() * src.length)];
+    if (t.quote && line === t.quote.text) line = src[(src.indexOf(line) + 1) % src.length];
+    return { text: line, stage: st, role };
   }
 
   // ---------- Tower popover ----------
