@@ -88,6 +88,7 @@ canvas#cv { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; to
 .coach .cm { flex: 1; min-width: 0; }
 .coach .ct { display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; }
 .coach .cx { font: inherit; font-weight: 700; font-size: 13px; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg); border-radius: 8px; padding: 6px 10px; cursor: pointer; flex: none; }
+.coach.low { top: auto; bottom: 10px; }
 @media (max-width: 520px) { .coach { font-size: 12.5px; padding: 7px 8px 7px 10px; } }
 .pulse { animation: pulse 1.3s ease-in-out infinite; }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(240,180,76,.75); } 70% { box-shadow: 0 0 0 12px rgba(240,180,76,0); } 100% { box-shadow: 0 0 0 0 rgba(240,180,76,0); } }
@@ -121,7 +122,7 @@ table.score tfoot tr.sub td { font-size: 13px; color: var(--muted); font-weight:
 .dragghost canvas { width: 60px; height: 60px; display: block; }
 .dragghost.bad { opacity: .55; }
 .tbtn { touch-action: none; }
-.pop { position: absolute; z-index: 5; width: 240px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px; display: grid; gap: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+.pop { position: absolute; z-index: 7; width: 240px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px; display: grid; gap: 6px; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
 .pop .ph { display: flex; justify-content: space-between; align-items: center; gap: 6px; font-weight: 700; font-size: 13.5px; }
 .pop .ph small { color: var(--muted); font-weight: 500; }
 .pop .x { font: inherit; background: none; border: none; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 6px; border-radius: 6px; }
@@ -1499,7 +1500,6 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     for (let c = 0; c < COLS - 1; c++) for (let r = 0; r < ROWS - 1; r++) if (canPlace(c, r)) {
       const x = (c + 1) * C, y = (r + 1) * C; let v = 0;
       for (const q of pts) if (Math.hypot(q.x - x, q.y - y) <= R) v++;
-      if (r < 3) v -= 1000; // keep the spot clear of the coach box over the top rows
       if (!best || v > best.v) best = { c, r, v };
     }
     return best;
@@ -1528,7 +1528,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       1: ['2 of 5 · Build', 'Drag <b>Healthy diet</b> onto the glowing spot. Or tap it, then tap the spot twice.'],
       2: ['3 of 5 · Start', 'Press <b>Start wave</b>. You can keep adding towers while the wave runs.'],
       3: ['4 of 5 · Watch', 'Anything that gets past your towers hits the kidney and lowers eGFR in the top bar.'],
-      4: ['5 of 5 · Upgrade or sell', 'Tap your glowing tower. <b>Upgrade</b> makes it stronger, up to level 3. <b>Sell</b> gives back 60% of what you spent, so you can rebuild elsewhere.'],
+      4: ['5 of 5 · Upgrade or sell', 'Tap your glowing tower to <b>Upgrade</b> it (up to level 3) or <b>Sell</b> it for 60% back.'],
       5: ['You’re ready', 'Tap any mascot to hear what it knows. The <b>Field guide</b> shows which tower beats which threat.']
     }[n];
     const coach = $('coach');
@@ -1539,7 +1539,31 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     if (n === 2) { $('start').classList.add('pulse'); $('mstart').classList.add('pulse'); }
     if (n === 3) $('gfr').classList.add('pulse');
     if (n === 4) { TUT.tower = S.towers[0] || null; TUT.lv = TUT.tower ? TUT.tower.level : 0; S.sel = null; S.build = null; panelKey = ''; }
+    placeCoach();
   }
+  // Put the coach box on whichever edge (top or bottom) hides less of the vessel,
+  // and never over the glowing build spot or the tower being taught.
+  function placeCoach() {
+    const coach = $('coach'); if (!TUT || coach.hidden) return;
+    coach.classList.remove('low');
+    const cr = cv.getBoundingClientRect(), bx = coach.getBoundingClientRect();
+    if (!cr.height || !bx.height) return;
+    const cw = cr.width / COLS, chh = cr.height / ROWS;
+    const rows = Math.min(ROWS, Math.ceil((bx.height + 10) / chh));
+    const c0 = Math.max(0, Math.floor((bx.left - cr.left) / cw)), c1 = Math.min(COLS - 1, Math.ceil((bx.right - cr.left) / cw) - 1);
+    const on = (c, r) => MAP.path.has(c + ',' + r);
+    const near = (c, r) => on(c - 1, r) || on(c + 1, r) || on(c, r - 1) || on(c, r + 1);
+    const a = TUT.step === 1 ? TUT.spot : TUT.step === 4 ? TUT.tower : null;
+    const k = MAP.kid, kid = (c, r) => k && (c + 1) * C > k.x - k.w / 2 && c * C < k.x + k.w / 2 && (r + 1) * C > k.y - k.h / 2 && r * C < k.y + k.h / 2;
+    const keep = (c, r) => a && c >= a.c && c <= a.c + 1 && r >= a.r && r <= a.r + 1;
+    const cost = r0 => {
+      let v = 0;
+      for (let r = r0; r < r0 + rows; r++) for (let c = c0; c <= c1; c++) v += keep(c, r) ? 100 : on(c, r) ? 3 : kid(c, r) ? 2 : near(c, r) ? 1 : 0;
+      return v;
+    };
+    if (cost(ROWS - rows) < cost(0)) coach.classList.add('low');
+  }
+  window.addEventListener('resize', placeCoach);
   function endTutorial() {
     if (!TUT) return;
     TUT = null; $('coach').hidden = true; clearPulse();
