@@ -82,6 +82,31 @@ canvas#cv { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; to
 .stage.portrait canvas#cv { aspect-ratio: 10 / 16; }
 @media (max-height: 520px) and (orientation: landscape) { .stage { --reserve: 24px; } }
 .hint { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); background: color-mix(in srgb, var(--bg) 88%, transparent); border: 1px solid var(--line); color: var(--fg); font-size: 13px; padding: 5px 12px; border-radius: 999px; pointer-events: none; white-space: nowrap; }
+.coach { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: min(460px, calc(100% - 20px)); z-index: 6;
+  display: flex; gap: 10px; align-items: center; background: var(--panel); border: 1.5px solid var(--accent); border-radius: 12px; padding: 9px 10px 9px 12px;
+  font-size: 14px; line-height: 1.4; box-shadow: 0 10px 30px rgba(0,0,0,.45); }
+.coach .cm { flex: 1; min-width: 0; }
+.coach .ct { display: block; font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); margin-bottom: 2px; }
+.coach .cx { font: inherit; font-weight: 700; font-size: 13px; border: 1px solid var(--line); background: var(--panel-2); color: var(--fg); border-radius: 8px; padding: 6px 10px; cursor: pointer; flex: none; }
+@media (max-width: 520px) { .coach { font-size: 12.5px; padding: 7px 8px 7px 10px; } }
+.pulse { animation: pulse 1.3s ease-in-out infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(240,180,76,.75); } 70% { box-shadow: 0 0 0 12px rgba(240,180,76,0); } 100% { box-shadow: 0 0 0 0 rgba(240,180,76,0); } }
+@media (prefers-reduced-motion: reduce) { .pulse { animation: none; outline: 3px solid var(--accent); outline-offset: 2px; } }
+.overlay .box.wide { width: min(700px, 100%); text-align: left; justify-items: stretch; }
+.overlay .box.wide h2, .overlay .box.wide > .eyebrow { text-align: center; }
+.guide-sec { display: grid; gap: 6px; }
+.guide-sec h3 { font-family: var(--display); font-size: 17px; margin: 6px 0 0; }
+table.guide { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+table.guide td, table.guide th { padding: 6px 6px; border-bottom: 1px solid var(--line); vertical-align: middle; text-align: left; }
+table.guide th { font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+table.guide td.ic { width: 40px; }
+table.guide td.ic canvas { width: 36px; height: 36px; display: block; }
+table.guide td.num { font-family: var(--mono); color: var(--accent); text-align: right; white-space: nowrap; }
+table.guide td small { display: block; color: var(--muted); font-size: 11.5px; }
+.stars { display: flex; gap: 6px; justify-content: center; font-size: 38px; line-height: 1; }
+.stars span { color: var(--line); }
+.stars span.on { color: var(--accent); }
+table.score tfoot tr.sub td { font-size: 13px; color: var(--muted); font-weight: 400; }
 .pop .say { position: relative; background: #f3e9e5; color: #1d1517; border-radius: 12px; padding: 8px 10px; font-size: 13px; line-height: 1.38; margin-bottom: 6px; }
 .pop .say::after { content: ""; position: absolute; left: 16px; bottom: -7px; border: 7px solid transparent; border-bottom: 0; border-top-color: #f3e9e5; }
 .pop .say b { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: #8a5a5a; margin-bottom: 2px; }
@@ -95,7 +120,7 @@ canvas#cv { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; to
 .pop .x { font: inherit; background: none; border: none; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; padding: 2px 6px; border-radius: 6px; }
 .pop .pb { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .pop .btn { padding: 8px 6px; font-size: 13px; min-height: 40px; }
-.mctrl { display: none; grid-template-columns: 1fr auto auto auto; gap: 8px; }
+.mctrl { display: none; grid-template-columns: 1fr auto auto auto auto; gap: 8px; }
 .mctrl .btn { min-height: 46px; }
 .mctrl #mspeed { font-family: var(--mono); min-width: 56px; }
 .echips { display: none; gap: 6px; flex-wrap: wrap; min-height: 34px; align-items: center; }
@@ -218,6 +243,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   .bands { font-size: 9.5px; height: 12px; }
 }
 @media (max-width: 920px) {
+  .mob-hide { display: none !important; }
   .mctrl { display: grid; }
   .echips { display: flex; }
   /* weapons and controls live in a tray pinned to the bottom of the screen, always in reach */
@@ -245,7 +271,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   .dock { grid-template-columns: minmax(0, 1fr) auto; align-items: center; padding-top: 6px; }
   .tbtn { min-height: 46px; }
   .tbtn canvas { width: 30px; height: 30px; }
-  .mctrl { grid-template-columns: auto auto auto auto; }
+  .mctrl { grid-template-columns: auto auto auto auto auto; }
   .mctrl .btn { min-height: 40px; }
   .stage { --reserve: 84px; }
 }
@@ -254,7 +280,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
 <div class="app" id="app">
   <header>
     <div>
-      <h1>Renal <span>Tower</span> Defense <span class="vtag">2.0</span></h1>
+      <h1>Renal <span>Tower</span> Defense <span class="vtag">2.1</span></h1>
       <p class="tag">Stop threats in the bloodstream before they reach the kidney.</p>
     </div>
     <div class="stats">
@@ -287,6 +313,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       <div class="stage" id="stagebox">
         <canvas id="cv" width="960" height="600" aria-label="Game board: a blood vessel winding across tissue toward the kidney"></canvas>
         <div class="hint" id="hint" hidden></div>
+        <div class="coach" id="coach" hidden></div>
         <div class="pop" id="pop" hidden></div>
         <div class="overlay" id="overlay"><div class="box" id="ov"></div></div>
       </div>
@@ -298,6 +325,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
           <button class="btn" id="mspeed" type="button" aria-label="Change speed">×1</button>
           <button class="btn" id="mpause" type="button">Pause</button>
           <button class="btn" id="mrestart" type="button" aria-label="Restart">↻</button>
+          <button class="btn" id="mguide" type="button" aria-label="Field guide">?</button>
         </div>
       </div>
     </div>
@@ -305,8 +333,11 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     <aside>
       <div class="card">
         <button class="btn primary wide desk-only" id="start" type="button">Start wave 1</button>
-        <button class="btn wide desk-only" id="restart" type="button">Restart</button>
-        <label class="switch" for="auto"><input type="checkbox" id="auto"> Start the next wave automatically</label>
+        <div class="row desk-only">
+          <button class="btn" style="flex:1" id="restart" type="button">Restart</button>
+          <button class="btn" style="flex:1" id="guide" type="button">Field guide</button>
+        </div>
+        <label class="switch" for="auto"><input type="checkbox" id="auto" checked> Start the next wave automatically</label>
         <div class="desk-only">
           <div class="k" style="margin-bottom:6px">Speed</div>
           <div class="seg" id="speed" role="group" aria-label="Game speed"></div>
@@ -320,14 +351,14 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
         </div>
       </div>
 
-      <div class="card">
+      <div class="card mob-hide">
         <p class="eyebrow">Enemies</p>
         <ul class="elist" id="elist"></ul>
         <p class="note">Field: on the board now. Next: still to come this wave. Tap one for details.</p>
       </div>
 
-      <div class="card" id="panel"></div>
-      <p class="note">eGFR stages follow the real KDIGO bands (G1 ≥90 to G5 &lt;15). In the game the number is a score, not a medical reading.</p>
+      <div class="card mob-hide" id="panel"></div>
+      <p class="note mob-hide">eGFR stages follow the real KDIGO bands (G1 ≥90 to G5 &lt;15). In the game the number is a score, not a medical reading.</p>
     </aside>
   </div>
 </div>
@@ -1213,19 +1244,22 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   // ---------- State ----------
   // Enemy health compounds each wave by the mode's growth rate; tuned with a simulated player.
   const MODES = {
-    easy:   { name: 'Easy',   growth: 0.05, coins: 160, blurb: 'Gentler waves. Most players can finish.' },
-    medium: { name: 'Medium', growth: 0.12, coins: 120, blurb: 'The intended challenge. Stage 5 is the real test.' },
-    hard:   { name: 'Hard',   growth: 0.13, coins: 120, blurb: 'Tight energy and tougher waves. Every tower counts.' }
+    easy:   { name: 'Easy',   growth: 0.05, coins: 160, blurb: 'Enemies toughen slowly. Best for a first game.', who: 'Best for a first game' },
+    medium: { name: 'Medium', growth: 0.12, coins: 120, blurb: 'A steady challenge. Plan your towers and upgrades.', who: 'A steady challenge' },
+    hard:   { name: 'Hard',   growth: 0.125, coins: 120, blurb: 'Enemies toughen fast. Every placement counts.', who: 'For practised players' }
   };
   let mode = 'medium';
   try { const m = localStorage.getItem('rtd-mode'); if (MODES[m]) mode = m; } catch (e) {}
-  let S, autoPref = false, speedPref = 1;
+  // Waves start on their own after a short countdown unless the player turns it off (remembered per browser).
+  const FIRST_GAP = 10, WAVE_GAP = 8, STAGE_GAP = 10, ENEMY_HP = 3.5;   // enemy health multiplier, tuned with the simulator
+  let S, autoPref = true, speedPref = 1;
+  try { if (localStorage.getItem('rtd-auto') === '0') autoPref = false; } catch (e) {}
   function reset() {
     S = {
       coins: MODES[mode].coins, egfr: 100, stage: 1, waveInStage: 0, inWave: false, queue: [], mult: 1, spawnT: 0,
       enemies: [], towers: [], shots: [], rings: [], drops: [], time: 0, paused: false, over: false, started: false,
       build: null, sel: null, hover: null, seen: new Set(), fact: null, kills: {}, score: 0, autoT: -1,
-      banner: null, kHit: 0, kCheer: 0, leaked: 0
+      banner: null, kHit: 0, kCheer: 0, leaked: 0, spentTotal: 0
     };
     ETYPES.forEach(t => S.kills[t] = 0);
     MAP = genMap(TURNS[0]);
@@ -1233,12 +1267,12 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     snapStage();
   }
   // what the player had when the current stage began, so the stage can be replayed from wave 1
-  function snapStage() { S.snap = { coins: S.coins, egfr: S.egfr, score: S.score, leaked: S.leaked, kills: { ...S.kills } }; }
+  function snapStage() { S.snap = { coins: S.coins, egfr: S.egfr, score: S.score, leaked: S.leaked, spentTotal: S.spentTotal, kills: { ...S.kills } }; }
   function restartStage() {
     const sn = S.snap;
     Object.assign(S, { coins: sn.coins, egfr: sn.egfr, score: sn.score, leaked: sn.leaked, kills: { ...sn.kills },
       towers: [], enemies: [], shots: [], rings: [], drops: [], queue: [], inWave: false, waveInStage: 0,
-      sel: null, build: null, pending: null, paused: false, over: false, kHit: 0, kCheer: 0, autoT: autoPref ? 2.2 : -1 });
+      sel: null, build: null, pending: null, paused: false, over: false, kHit: 0, kCheer: 0, spentTotal: sn.spentTotal, autoT: autoPref ? FIRST_GAP : -1 });
     S.banner = { title: `Stage ${S.stage} restarted`, sub: 'Back to wave 1 with the energy and kidney function you started the stage with', t: 2.6 };
     SFX.setIntensity(false); panelKey = ''; popKey = '';
   }
@@ -1246,6 +1280,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     if (!S.started || S.over) return;
     const wasPaused = S.paused; S.paused = true;
     const later = S.stage > 1;
+    ov.className = 'box';
     ov.innerHTML = `
       <p class="eyebrow">Restart</p>
       <h2>Try again?</h2>
@@ -1311,7 +1346,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     const a = e ? anchorFromEvent({ clientX: e.clientX, clientY: e.clientY - dg.lift }) : null;
     const d = TOWERS[dg.k];
     if (a && canPlace(a.c, a.r) && S.coins >= d.cost && !S.over) { placeTower(dg.k, a.c, a.r); SFX.play('place'); hint(''); }
-    else if (a) hint(S.coins < d.cost ? 'Not enough energy' : 'Can’t build there');
+    else if (a) hint(S.coins < d.cost ? 'Not enough energy' : whyBlocked(a.c, a.r));
     else hint('');
     S.build = null; S.pending = null; panelKey = '';
   }
@@ -1379,6 +1414,8 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   window.addEventListener('resize', fitDock); fitDock();
   $('mstart').addEventListener('click', startWave);
   $('mrestart').addEventListener('click', showRestart);
+  $('mguide').addEventListener('click', () => showGuide());
+  $('guide').addEventListener('click', () => showGuide());
   $('restart').addEventListener('click', showRestart);
   $('mspeed').addEventListener('click', () => { speedPref = speedPref % 5 + 1; });
   $('mpause').addEventListener('click', () => pauseBtn.click());
@@ -1397,9 +1434,11 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   window.addEventListener('keydown', () => SFX.init());
   $('speed').appendChild(pauseBtn);
 
+  $('auto').checked = autoPref;
   $('auto').addEventListener('change', e => {
     autoPref = e.target.checked;
-    if (autoPref && S.started && !S.inWave && !S.over && S.autoT < 0) S.autoT = 1.2;
+    try { localStorage.setItem('rtd-auto', autoPref ? '1' : '0'); } catch (err) {}
+    if (autoPref && S.started && !S.inWave && !S.over && S.autoT < 0 && !(TUT && TUT.step <= 2)) S.autoT = WAVE_GAP;
     if (!autoPref) S.autoT = -1;
   });
   $('start').addEventListener('click', startWave);
@@ -1413,23 +1452,21 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   }
 
   // ---------- Overlays ----------
+  function setOv(html, wide) { ov.className = wide ? 'box wide' : 'box'; ov.innerHTML = html; overlay.hidden = false; overlay.scrollTop = 0; }
   function showTitle() {
-    ov.innerHTML = `
+    setOv(`
       <p class="eyebrow">A kidney health game</p>
       <h2>Renal <span>Tower</span> Defense</h2>
-      <p>Salt, sugar, painkillers, dehydration, smoking, obesity and two boss diseases travel through the bloodstream toward the kidney. Build healthy habits along the vessel to stop them.</p>
-      <div class="facts">
-        <div><b>5</b><span>Stages</span></div>
-        <div><b>5</b><span>Waves each</span></div>
-        <div><b>25</b><span>Waves total</span></div>
-      </div>
-      <p class="note"><b>New in 2.0:</b> towers are now characters and each takes a 2×2 block, so space is tight and placement matters. Each stage brings a new, longer vessel: 2, 4, 6, 8, then 10 turns. Towers are refunded in full when the map changes, and premium towers unlock from stage 2.</p>
+      <p>Stop threats in the bloodstream before they reach the kidney.</p>
       <div class="modes" role="radiogroup" aria-label="Difficulty">
         ${Object.entries(MODES).map(([k, m]) => `<button type="button" class="mode" role="radio" data-mode="${k}" aria-checked="${k === mode}">
           <b>${m.name}</b><span>${m.blurb}</span><small>${m.coins} starting energy</small></button>`).join('')}
       </div>
-      <button class="btn primary" id="go" type="button">Start game</button>`;
-    overlay.hidden = false;
+      <button class="btn primary" id="go" type="button">Start game</button>
+      <div class="row" style="justify-content:center">
+        <button class="btn" id="howto" type="button">How to play</button>
+        <button class="btn" id="tguide" type="button">Field guide</button>
+      </div>`);
     ov.querySelectorAll('.mode').forEach(b => b.addEventListener('click', () => {
       mode = b.dataset.mode;
       try { localStorage.setItem('rtd-mode', mode); } catch (e) {}
@@ -1437,40 +1474,170 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       S.coins = MODES[mode].coins;
       SFX.init(); SFX.play('place');
     }));
-    $('go').addEventListener('click', beginGame);
+    $('go').addEventListener('click', () => beginGame());
+    $('howto').addEventListener('click', () => beginGame({ tutorial: true }));
+    $('tguide').addEventListener('click', () => showGuide());
     $('go').focus();
   }
-  function beginGame() {
+
+  // ---------- Guided first game ----------
+  // Runs on the first play (and from "How to play"): goal, build, start, watch.
+  let TUT = null;
+  const tutDone = () => { try { return localStorage.getItem('rtd-tut') === 'done'; } catch (e) { return false; } };
+  function clearPulse() { document.querySelectorAll('.pulse').forEach(x => x.classList.remove('pulse')); }
+  function suggestSpot(type) {
+    const R = stats({ type, level: 1 }).range, pts = [];
+    for (let d = 0; d < MAP.total; d += 15) pts.push(posAt(d));
+    let best = null;
+    for (let c = 0; c < COLS - 1; c++) for (let r = 0; r < ROWS - 1; r++) if (canPlace(c, r)) {
+      const x = (c + 1) * C, y = (r + 1) * C; let v = 0;
+      for (const q of pts) if (Math.hypot(q.x - x, q.y - y) <= R) v++;
+      if (!best || v > best.v) best = { c, r, v };
+    }
+    return best;
+  }
+  function startTutorial() {
+    TUT = { step: 0, t: 0, spot: suggestSpot('diet') };
+    S.autoT = -1; S.banner = null;
+    setOv(`
+      <p class="eyebrow">How to play · 1 of 4</p>
+      <h2>Protect the kidney</h2>
+      <p>Threats travel along the blood vessel toward the kidney. Build towers beside the vessel to stop them.</p>
+      <p>Each threat that gets through lowers the kidney’s function, shown as <b>eGFR</b> in the bar at the top. Lost function does not come back.</p>
+      <p class="note">Spend wisely: a healthy kidney and unspent energy both add to your final score.</p>
+      <div class="row" style="justify-content:center">
+        <button class="btn primary" id="tut-next" type="button">Next</button>
+        <button class="btn" id="tut-skip" type="button">Skip tutorial</button>
+      </div>`);
+    $('gfr').classList.add('pulse');
+    $('tut-next').addEventListener('click', () => { overlay.hidden = true; tutStep(1); });
+    $('tut-skip').addEventListener('click', () => { overlay.hidden = true; endTutorial(); });
+    $('tut-next').focus();
+  }
+  function tutStep(n) {
+    TUT.step = n; TUT.t = 0; clearPulse();
+    const msg = {
+      1: ['2 of 4 · Build', 'Drag <b>Healthy diet</b> onto the glowing spot. Or tap it, then tap the spot twice.'],
+      2: ['3 of 4 · Start', 'Press <b>Start wave</b>. You can keep adding towers while the wave runs.'],
+      3: ['4 of 4 · Watch', 'Anything that gets past your towers hits the kidney and lowers eGFR in the top bar.'],
+      4: ['You’re ready', 'Tap any mascot to hear what it knows. The <b>Field guide</b> shows which tower beats which threat.']
+    }[n];
+    const coach = $('coach');
+    coach.innerHTML = `<span class="cm"><span class="ct">${msg[0]}</span>${msg[1]}</span><button type="button" class="cx">${n === 4 ? 'Got it' : 'Skip'}</button>`;
+    coach.hidden = false;
+    coach.querySelector('.cx').addEventListener('click', endTutorial);
+    if (n === 1) $('tb-diet').classList.add('pulse');
+    if (n === 2) { $('start').classList.add('pulse'); $('mstart').classList.add('pulse'); }
+    if (n === 3) $('gfr').classList.add('pulse');
+  }
+  function endTutorial() {
+    if (!TUT) return;
+    TUT = null; $('coach').hidden = true; clearPulse();
+    try { localStorage.setItem('rtd-tut', 'done'); } catch (e) {}
+    if (autoPref && S.started && !S.inWave && !S.over && S.autoT < 0) S.autoT = WAVE_GAP;
+  }
+  function tutTick(dt) {
+    if (!TUT) return;
+    TUT.t += dt;
+    if (TUT.step <= 2) S.autoT = -1;
+    if (TUT.step === 1 && S.towers.length) tutStep(2);
+    else if (TUT.step === 2 && S.inWave) tutStep(3);
+    else if (TUT.step === 3 && TUT.t > 6) tutStep(4);
+    else if (TUT.step === 4 && TUT.t > 10) endTutorial();
+  }
+
+  // ---------- Field guide ----------
+  const BEST = {
+    diet: 'Salt and Sugar swarms. A cheap, reliable all-rounder.',
+    flush: 'Groups of threats, with splash damage. Triple damage to Dehydration.',
+    reg: 'Fast threats. Slows everything it hits.',
+    ex: 'Large swarms, with very rapid fire.',
+    quit: 'Smoking: destroys it in one hit and clears its smoke.',
+    screen: 'Hidden threats: reveals them and makes them take 25% more damage.',
+    med: 'Armoured bosses: Hypertension, Diabetes and Obesity.'
+  };
+  const BEATEN = {
+    salt: 'Healthy diet or Exercise.',
+    sugar: 'Healthy diet, or Hydration splash.',
+    dehyd: 'Hydration deals triple damage; BP control slows it.',
+    pain: 'Slow it with BP control, then finish it with Exercise.',
+    smoke: 'Slows nearby towers and hides others. Quit smoking destroys it in one hit.',
+    obese: 'Splits into Salt and Sugar. Hydration splash catches the pieces.',
+    hyp: 'Armoured boss. Prescribed Medication ignores armour.',
+    dia: 'Heavily armoured boss. Prescribed Medication, helped by Health screening.'
+  };
+  function showGuide() {
+    const fromTitle = !S.started, wasPaused = S.paused;
+    if (S.started && !S.over) S.paused = true;
+    setOv(`
+      <p class="eyebrow">Field guide</p>
+      <h2>Towers and threats</h2>
+      <div class="guide-sec"><h3>Towers</h3>
+        <table class="guide"><thead><tr><th></th><th>Tower</th><th>Cost</th><th>Best against</th></tr></thead><tbody>
+        ${ORDER.map(k => { const d = TOWERS[k]; return `<tr><td class="ic" data-t="${k}"></td><td><b>${d.name}</b>${d.premium ? `<small>Unlocks at stage ${d.unlock}</small>` : ''}</td><td class="num">${d.cost}</td><td>${BEST[k]}</td></tr>`; }).join('')}
+        </tbody></table></div>
+      <div class="guide-sec"><h3>Threats</h3>
+        <table class="guide"><thead><tr><th></th><th>Threat</th><th>How to beat it</th></tr></thead><tbody>
+        ${ETYPES.map(k => { const d = ENEMIES[k]; return `<tr><td class="ic" data-e="${k}"></td><td><b>${d.name}</b><small>${d.short}</small></td><td>${BEATEN[k]}</td></tr>`; }).join('')}
+        </tbody></table></div>
+      <div class="guide-sec"><h3>Difficulty</h3>
+        <table class="guide"><tbody>
+        ${Object.values(MODES).map(m => `<tr><td><b>${m.name}</b><small>${m.who}</small></td><td>${m.coins} starting energy. Enemies get ${Math.round(m.growth * 100)}% tougher each wave.</td></tr>`).join('')}
+        </tbody></table></div>
+      <p class="note">Your score: points for every threat stopped, plus a bonus for kidney function left and for energy you didn’t spend.</p>
+      <div class="row" style="justify-content:center"><button class="btn primary" id="gclose" type="button">${fromTitle ? 'Back' : 'Back to game'}</button></div>`, true);
+    ov.querySelectorAll('[data-t]').forEach(td => { const k = td.dataset.t; td.appendChild(iconCanvas(36, g => {
+      g.fillStyle = '#1d1517'; g.strokeStyle = TOWERS[k].color; g.lineWidth = 2; g.beginPath(); g.roundRect(-16, -16, 32, 32, 7); g.fill(); g.stroke();
+      Mascot.setLevel(1); Mascot.drawRig(g, 0, 12, 0.22, Mascot.newState(), Mascot.CFG[MK[k]], 0, false); })); });
+    ov.querySelectorAll('[data-e]').forEach(td => { const k = td.dataset.e, d = ENEMIES[k]; td.appendChild(iconCanvas(36, g => { const sc = Math.min(1, 13 / d.r); g.scale(sc, sc); enemyShape(g, k, d.r, 0.3, 0); })); });
+    $('gclose').addEventListener('click', () => { if (fromTitle) showTitle(); else { overlay.hidden = true; S.paused = wasPaused; } });
+    $('gclose').focus({ preventScroll: true });
+  }
+  function beginGame(opts = {}) {
     reset(); overlay.hidden = true; S.started = true;
     SFX.init(); SFX.startMusic();
+    TUT = null; $('coach').hidden = true; clearPulse();
+    if (opts.tutorial || !tutDone()) { startTutorial(); return; }
     S.banner = { title: 'Stage 1 of 5', sub: `${MODES[mode].name} · wave 1 of 25 · ${MAP.turns}-turn vessel`, t: 2.6 };
-    if (autoPref) S.autoT = 2.6;
+    if (autoPref) S.autoT = FIRST_GAP;
   }
+  const STAGE_DESC = { G1: 'normal', G2: 'mildly decreased', G3a: 'mildly to moderately decreased', G3b: 'moderately to severely decreased', G4: 'severely decreased', G5: 'kidney failure' };
   function showScore(won) {
+    if (TUT) endTutorial();
     const g = Math.round(S.egfr), [st] = stageOf(g);
     const reached = Math.min(TOTAL_WAVES, (S.stage - 1) * PER_STAGE + S.waveInStage + (won ? 0 : 1));
+    const stars = !won ? 0 : g >= 90 ? 3 : g >= 60 ? 2 : 1;
+    const verdict = !won ? 'Kidney function fell below 15. In real life this is when dialysis or a transplant takes over, and people go on living with treatment.'
+      : stars === 3 ? `Final eGFR ${g}: kidney function stayed ${STAGE_DESC[st]} (G1). A near-perfect defence.`
+      : stars === 2 ? `Final eGFR ${g}: ${STAGE_DESC[st]} (G2). A strong result; the kidney took a little damage.`
+      : `Final eGFR ${g}: ${STAGE_DESC[st]} (${st}). The kidney survived, but took real damage.`;
+    const kidneyBonus = won ? g * 2 : 0, saveBonus = won ? Math.floor(S.coins / 10) : 0, total = S.score + kidneyBonus + saveBonus;
     const rows = ETYPES.map(k => {
       const d = ENEMIES[k], n = S.kills[k];
       return `<tr><td>${d.name}</td><td>${n}</td><td>${d.pts}</td><td>${n * d.pts}</td></tr>`;
     }).join('');
-    ov.innerHTML = `
+    setOv(`
       <p class="eyebrow">${won ? 'All 25 waves cleared' : `Ended on stage ${S.stage}, wave ${S.waveInStage + 1}`}</p>
       <h2>${won ? 'Kidney protected' : 'Kidney failure (G5)'}</h2>
-      <p>${won
-        ? `Final eGFR ${g}, stage ${st}. Real kidneys do this work around the clock, which is why yearly blood and urine checks matter for anyone with diabetes or high blood pressure.`
-        : `Function fell below 15. In real life this is when dialysis or a transplant takes over, and people go on living with treatment.`}</p>
+      <div class="stars" role="img" aria-label="${stars} of 3 stars">${[0, 1, 2].map(i => `<span class="${i < stars ? 'on' : ''}">★</span>`).join('')}</div>
+      <p>${verdict}</p>
       <table class="score">
-        <thead><tr><th>Enemy</th><th>Stopped</th><th>Pts each</th><th>Points</th></tr></thead>
+        <thead><tr><th>Threat</th><th>Stopped</th><th>Pts each</th><th>Points</th></tr></thead>
         <tbody>${rows}</tbody>
-        <tfoot><tr><td>Total score</td><td></td><td></td><td>${S.score}</td></tr></tfoot>
+        <tfoot>
+          <tr class="sub"><td>Threats stopped</td><td></td><td></td><td>${S.score}</td></tr>
+          <tr class="sub"><td>Kidney bonus (eGFR × 2)</td><td></td><td></td><td>${kidneyBonus}</td></tr>
+          <tr class="sub"><td>Saved energy (1 per 10 unspent)</td><td></td><td></td><td>${saveBonus}</td></tr>
+          <tr><td>Total score</td><td></td><td></td><td>${total}</td></tr>
+        </tfoot>
       </table>
-      <p class="note">${MODES[mode].name} mode · wave ${reached} of 25 reached · ${S.leaked} threat${S.leaked === 1 ? '' : 's'} reached the kidney</p>
+      <p class="note">${MODES[mode].name} mode · wave ${reached} of 25 · ${S.leaked} threat${S.leaked === 1 ? '' : 's'} reached the kidney · ${Math.max(0, S.spentTotal)} energy spent on towers</p>
+      <p class="note">Stars: ★★★ eGFR 90 or more (G1, normal) · ★★ 60–89 (G2, mildly decreased) · ★ survived with less.</p>
       <div class="row" style="justify-content:center">
         <button class="btn primary" id="again" type="button">Play again (${MODES[mode].name})</button>
         <button class="btn" id="change" type="button">Change difficulty</button>
-      </div>`;
-    overlay.hidden = false;
-    $('again').addEventListener('click', beginGame);
+      </div>`);
+    $('again').addEventListener('click', () => beginGame());
     $('change').addEventListener('click', () => { reset(); showTitle(); });
     $('again').focus();
   }
@@ -1500,9 +1667,15 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     if (lx < 0 || ly < 0 || lx > W || ly > H) return null;
     return { c: Math.max(0, Math.min(COLS - 2, Math.round(lx / C) - 1)), r: Math.max(0, Math.min(ROWS - 2, Math.round(ly / C) - 1)) };
   }
+  function whyBlocked(c, r) {
+    const cells = [[c, r], [c + 1, r], [c, r + 1], [c + 1, r + 1]];
+    if (cells.some(([a, b]) => MAP.path.has(a + ',' + b))) return 'Build beside the vessel, not on it';
+    if (cells.some(([a, b]) => towerAt(a, b))) return 'Another tower is already there';
+    return 'Can’t build there';
+  }
   function placeTower(type, c, r) {
     const d = TOWERS[type];
-    S.coins -= d.cost;
+    S.coins -= d.cost; S.spentTotal += d.cost;
     const t = { type, c, r, x: (c + 1) * C, y: (r + 1) * C, level: 1, cd: 0, spent: d.cost, kick: 0, face: 1, charging: false, st: Mascot.newState() };
     S.towers.push(t);
     return t;
@@ -1528,7 +1701,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
         const same = S.pending && S.pending.c === cell.c && S.pending.r === cell.r;
         if (!same) {
           S.pending = cell;
-          hint(canPlace(cell.c, cell.r) ? (S.coins >= d.cost ? 'Tap again to build' : 'Not enough energy') : 'Can’t build there');
+          hint(canPlace(cell.c, cell.r) ? (S.coins >= d.cost ? 'Tap again to build' : 'Not enough energy') : whyBlocked(cell.c, cell.r));
           return;
         }
       }
@@ -1538,7 +1711,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
         if (S.coins < d.cost) S.build = null;
         SFX.play('place');
         panelKey = '';
-      }
+      } else hint(canPlace(cell.c, cell.r) ? 'Not enough energy' : whyBlocked(cell.c, cell.r));
       return;
     }
     S.sel = null; S.pending = null; panelKey = '';
@@ -1560,7 +1733,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
 
   // ---------- Simulation ----------
   function spawn(type, dist = 0, into = S.enemies) {
-    const d = ENEMIES[type], hp = Math.round(d.hp * S.mult), p = posAt(Math.max(0, dist));
+    const d = ENEMIES[type], hp = Math.round(d.hp * S.mult * ENEMY_HP), p = posAt(Math.max(0, dist));
     into.push({ type, d, hp, max: hp, dist: Math.max(0, dist), slowUntil: 0, slowMul: 1, x: p.x, y: p.y, spin: Math.random() * 6 });
     if (!S.seen.has(type)) { S.seen.add(type); if (!S.sel) { S.fact = { kind: 'enemy', key: type }; panelKey = ''; } }
   }
@@ -1710,8 +1883,8 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       const fresh = ORDER.filter(k => TOWERS[k].unlock === S.stage).map(k => TOWERS[k].name);
       S.banner = { title: `Stage ${S.stage - 1} cleared`, sub: fresh.length ? `Unlocked: ${fresh.join(' and ')} · new ${MAP.turns}-turn vessel` : `New ${MAP.turns}-turn vessel · ${back} energy refunded`, t: 3.4 };
       panelKey = '';
-      if (autoPref) S.autoT = 3.2;
-    } else if (autoPref) S.autoT = 1.5;
+      if (autoPref) S.autoT = STAGE_GAP;
+    } else if (autoPref) S.autoT = WAVE_GAP;
   }
 
   function end(won) {
@@ -1902,8 +2075,16 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     if (ROT) { ctx.translate(H, 0); ctx.rotate(Math.PI / 2); }
     ctx.drawImage(MAP.bg, 0, 0, W, H);
     if (S.build) {
-      ctx.strokeStyle = P.grid; ctx.lineWidth = 1;
-      for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) if (canPlace(c, r)) ctx.strokeRect(c * C + .5, r * C + .5, C - 1, C - 1);
+      // while building: free ground glows green, the vessel is marked off-limits
+      ctx.fillStyle = 'rgba(124,198,164,0.11)'; ctx.strokeStyle = 'rgba(124,198,164,0.22)'; ctx.lineWidth = 1;
+      for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) if (cellFree(c, r)) { ctx.fillRect(c * C + 1, r * C + 1, C - 2, C - 2); ctx.strokeRect(c * C + 1.5, r * C + 1.5, C - 3, C - 3); }
+      ctx.fillStyle = 'rgba(226,96,79,0.3)';
+      for (const key of MAP.path) { const [pc, pr] = key.split(',').map(Number); ctx.fillRect(pc * C, pr * C, C, C); }
+    }
+    if (TUT && TUT.step === 1 && TUT.spot) {
+      const k = 0.5 + 0.5 * Math.sin(performance.now() / 220), { c, r } = TUT.spot;
+      ctx.fillStyle = `rgba(124,198,164,${0.2 + 0.25 * k})`; ctx.fillRect(c * C, r * C, C * 2, C * 2);
+      ctx.strokeStyle = '#7cc6a4'; ctx.lineWidth = 3; ctx.setLineDash([8, 6]); ctx.strokeRect(c * C + 2, r * C + 2, C * 2 - 4, C * 2 - 4); ctx.setLineDash([]);
     }
     if (S.sel) ring(S.sel.x, S.sel.y, stats(S.sel).range, TOWERS[S.sel.type].color);
     for (const t of S.towers) if (t.type === 'screen') {
@@ -2010,8 +2191,8 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   }
 
   // ---------- Tower popover ----------
-  function doUpgrade(t) { const c = upCost(t); if (t.level < 3 && S.coins >= c) { S.coins -= c; t.spent += c; t.level++; panelKey = ''; popKey = ''; SFX.play('upgrade'); } }
-  function doSell(t) { S.coins += refund(t); S.towers = S.towers.filter(x => x !== t); S.sel = null; panelKey = ''; popKey = ''; SFX.play('sell'); }
+  function doUpgrade(t) { const c = upCost(t); if (t.level < 3 && S.coins >= c) { S.coins -= c; S.spentTotal += c; t.spent += c; t.level++; panelKey = ''; popKey = ''; SFX.play('upgrade'); } }
+  function doSell(t) { S.coins += refund(t); S.spentTotal -= refund(t); S.towers = S.towers.filter(x => x !== t); S.sel = null; panelKey = ''; popKey = ''; SFX.play('sell'); }
   function renderPop() {
     const pop = $('pop'), t = S.sel;
     if (!t || S.over || !S.towers.includes(t)) { if (!pop.hidden) { pop.hidden = true; popKey = ''; } return; }
@@ -2074,8 +2255,9 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     }
     panel.innerHTML = `<p class="eyebrow">How to play</p><h2>Defend the kidney</h2>
       <ol>
-        <li>Drag a tower onto the board, or pick it and tap where it should go.</li>
-        <li>Tap a placed mascot to hear what it has to say, or to upgrade or sell it.</li>
+        <li>Drag a tower onto the board beside the vessel, or pick it and click where it should go.</li>
+        <li>Click a placed mascot to hear what it has to say, or to upgrade or sell it.</li>
+        <li>Open the Field guide to see which tower beats which threat.</li>
         <li>Start the wave. Each threat that reaches the kidney lowers eGFR for good.</li>
         <li>Clear 5 stages of 5 waves without falling to G5.</li>
       </ol>`;
@@ -2099,7 +2281,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     setText('wave', `${Math.min(PER_STAGE, S.waveInStage + 1)} <small>/ 5 · #${Math.min(TOTAL_WAVES, waveNo())}</small>`, true);
     const sb = $('start');
     const label = !S.started ? 'Start wave 1' : S.over ? 'Game over' : S.inWave ? `Wave ${S.waveInStage + 1} in progress` :
-      S.autoT >= 0 ? `Next wave in ${Math.ceil(S.autoT)}…` : `Start wave ${S.waveInStage + 1} of stage ${S.stage}`;
+      S.autoT >= 0 ? `Start now · next wave in ${Math.ceil(S.autoT)}` : `Start wave ${S.waveInStage + 1} of stage ${S.stage}`;
     if (sb.textContent !== label) sb.textContent = label;
     sb.disabled = !S.started || S.inWave || S.over;
     speedBtns.forEach((b, i) => b.setAttribute('aria-pressed', String(speedPref === i + 1)));
@@ -2134,7 +2316,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     const anyChip = ETYPES.some(k => !erows[k].chip.hidden);
     if (last.noChips !== anyChip) { last.noChips = anyChip; noChips.hidden = anyChip; }
     const ms = $('mstart'), ml = !S.started ? 'Start' : S.over ? 'Game over' : S.inWave ? `Wave ${S.waveInStage + 1} of 5…` :
-      S.autoT >= 0 ? `Next wave in ${Math.ceil(S.autoT)}…` : `Start wave ${S.waveInStage + 1} of 5`;
+      S.autoT >= 0 ? `Start now · ${Math.ceil(S.autoT)}` : `Start wave ${S.waveInStage + 1} of 5`;
     if (ms.textContent !== ml) ms.textContent = ml;
     ms.disabled = !S.started || S.inWave || S.over;
     setText('mspeed', '×' + speedPref);
@@ -2146,6 +2328,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   function frame(now) {
     const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
     if (S.started && !S.paused && !S.over) for (let i = 0; i < speedPref && !S.over; i++) step(dt);
+    tutTick(dt);
     draw(); refreshUI();
     requestAnimationFrame(frame);
   }
