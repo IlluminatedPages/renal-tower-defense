@@ -1,6 +1,6 @@
 # Renal Tower Defense
 
-> **Branch `v2`: version 2.0 in testing.** Towers are animated kidney-bean mascots that take a 2×2 block, the kidney base reacts to its health, Hydration fires as a mortar, players can drag towers onto the board or tap to place them, mascots share kidney facts when tapped, and a Restart button replays a stage. The live game on `main` stays on v1.1.0 until this branch is merged.
+> **Version 2.0.** Towers are animated kidney-bean mascots that each take a 2×2 block, the kidney base reacts to its health, Hydration fires as a mortar, towers can be dragged onto the board or tapped into place, mascots share kidney facts when tapped, and a Restart button replays a stage. Earlier versions are tagged v1.0.0 and v1.1.0.
 
 A browser tower defense game about protecting kidney health. Threats travel through the bloodstream toward the kidney; you place healthy-habit towers along the vessel to stop them.
 
@@ -17,7 +17,7 @@ Works on phones, tablets and desktop browsers. On phones and tablets the weapons
 - **5 stages × 5 waves = 25 waves.** Each stage generates a new vessel map with more turns: 2, 4, 6, 8, then 10. Towers are refunded in full when the map changes.
 - **Health:** kidney function shown as eGFR, using the KDIGO stage bands (G1 ≥90 to G5 <15). The game ends if eGFR falls below 15.
 - **Towers:** Healthy diet (fast, single target), Hydration (long-range artillery with splash), BP control (slows).
-- **Premium towers:** Exercise (rapid fire, stage 2), Quit smoking (clears smoke, 4× damage to Smoking, stage 3), Health screening (reveals enemies in smoke and makes them take +25% damage, stage 3), Medication (long-range sniper that ignores armour, stage 4).
+- **Premium towers:** Exercise (rapid fire, stage 2), Quit smoking (clears smoke, 4× damage to Smoking, stage 3), Health screening (reveals enemies in smoke and makes them take +25% damage, stage 3), Prescribed Medication (long-range sniper that ignores armour, stage 4).
 - **Sound:** synthesised in the browser with Web Audio (background music and effects), with separate music and effects toggles.
 - **Enemies and score points:**
 
