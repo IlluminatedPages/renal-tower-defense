@@ -1488,7 +1488,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   }
 
   // ---------- Guided first game ----------
-  // Runs on the first play (and from "How to play"): goal, build, start, watch.
+  // Runs on the first play (and from "How to play"): goal, build, start, watch, upgrade or sell.
   let TUT = null;
   const tutDone = () => { try { return localStorage.getItem('rtd-tut') === 'done'; } catch (e) { return false; } };
   function clearPulse() { document.querySelectorAll('.pulse').forEach(x => x.classList.remove('pulse')); }
@@ -1499,6 +1499,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     for (let c = 0; c < COLS - 1; c++) for (let r = 0; r < ROWS - 1; r++) if (canPlace(c, r)) {
       const x = (c + 1) * C, y = (r + 1) * C; let v = 0;
       for (const q of pts) if (Math.hypot(q.x - x, q.y - y) <= R) v++;
+      if (r < 3) v -= 1000; // keep the spot clear of the coach box over the top rows
       if (!best || v > best.v) best = { c, r, v };
     }
     return best;
@@ -1507,7 +1508,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     TUT = { step: 0, t: 0, spot: suggestSpot('diet') };
     S.autoT = -1; S.banner = null;
     setOv(`
-      <p class="eyebrow">How to play · 1 of 4</p>
+      <p class="eyebrow">How to play · 1 of 5</p>
       <h2>Protect the kidney</h2>
       <p>Threats travel along the blood vessel toward the kidney. Build towers beside the vessel to stop them.</p>
       <p>Each threat that gets through lowers the kidney’s function, shown as <b>eGFR</b> in the bar at the top. Lost function does not come back.</p>
@@ -1524,18 +1525,20 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   function tutStep(n) {
     TUT.step = n; TUT.t = 0; clearPulse();
     const msg = {
-      1: ['2 of 4 · Build', 'Drag <b>Healthy diet</b> onto the glowing spot. Or tap it, then tap the spot twice.'],
-      2: ['3 of 4 · Start', 'Press <b>Start wave</b>. You can keep adding towers while the wave runs.'],
-      3: ['4 of 4 · Watch', 'Anything that gets past your towers hits the kidney and lowers eGFR in the top bar.'],
-      4: ['You’re ready', 'Tap any mascot to hear what it knows. The <b>Field guide</b> shows which tower beats which threat.']
+      1: ['2 of 5 · Build', 'Drag <b>Healthy diet</b> onto the glowing spot. Or tap it, then tap the spot twice.'],
+      2: ['3 of 5 · Start', 'Press <b>Start wave</b>. You can keep adding towers while the wave runs.'],
+      3: ['4 of 5 · Watch', 'Anything that gets past your towers hits the kidney and lowers eGFR in the top bar.'],
+      4: ['5 of 5 · Upgrade or sell', 'Tap your glowing tower. <b>Upgrade</b> makes it stronger, up to level 3. <b>Sell</b> gives back 60% of what you spent, so you can rebuild elsewhere.'],
+      5: ['You’re ready', 'Tap any mascot to hear what it knows. The <b>Field guide</b> shows which tower beats which threat.']
     }[n];
     const coach = $('coach');
-    coach.innerHTML = `<span class="cm"><span class="ct">${msg[0]}</span>${msg[1]}</span><button type="button" class="cx">${n === 4 ? 'Got it' : 'Skip'}</button>`;
+    coach.innerHTML = `<span class="cm"><span class="ct">${msg[0]}</span>${msg[1]}</span><button type="button" class="cx">${n === 5 ? 'Got it' : 'Skip'}</button>`;
     coach.hidden = false;
     coach.querySelector('.cx').addEventListener('click', endTutorial);
     if (n === 1) $('tb-diet').classList.add('pulse');
     if (n === 2) { $('start').classList.add('pulse'); $('mstart').classList.add('pulse'); }
     if (n === 3) $('gfr').classList.add('pulse');
+    if (n === 4) { TUT.tower = S.towers[0] || null; TUT.lv = TUT.tower ? TUT.tower.level : 0; S.sel = null; S.build = null; panelKey = ''; }
   }
   function endTutorial() {
     if (!TUT) return;
@@ -1549,8 +1552,12 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     if (TUT.step <= 2) S.autoT = -1;
     if (TUT.step === 1 && S.towers.length) tutStep(2);
     else if (TUT.step === 2 && S.inWave) tutStep(3);
-    else if (TUT.step === 3 && TUT.t > 6) tutStep(4);
-    else if (TUT.step === 4 && TUT.t > 10) endTutorial();
+    else if (TUT.step === 3 && TUT.t > 6) tutStep(S.towers.length ? 4 : 5);
+    else if (TUT.step === 4) {
+      const tw = TUT.tower, done = !tw || tw.level > TUT.lv || !S.towers.includes(tw);
+      if (done || TUT.t > 25) tutStep(5);
+    }
+    else if (TUT.step === 5 && TUT.t > 10) endTutorial();
   }
 
   // ---------- Field guide ----------
@@ -2093,6 +2100,11 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       ctx.fillStyle = `rgba(124,198,164,${0.2 + 0.25 * k})`; ctx.fillRect(c * C, r * C, C * 2, C * 2);
       ctx.strokeStyle = '#7cc6a4'; ctx.lineWidth = 3; ctx.setLineDash([8, 6]); ctx.strokeRect(c * C + 2, r * C + 2, C * 2 - 4, C * 2 - 4); ctx.setLineDash([]);
     }
+    if (TUT && TUT.step === 4 && TUT.tower && S.sel !== TUT.tower) {
+      const k = 0.5 + 0.5 * Math.sin(performance.now() / 220), tw = TUT.tower;
+      ctx.strokeStyle = `rgba(124,198,164,${0.5 + 0.5 * k})`; ctx.lineWidth = 3; ctx.setLineDash([8, 6]);
+      ctx.beginPath(); ctx.arc(tw.x, tw.y, C * (0.95 + 0.08 * k), 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    }
     if (S.sel) ring(S.sel.x, S.sel.y, stats(S.sel).range, TOWERS[S.sel.type].color);
     for (const t of S.towers) if (t.type === 'screen') {
       const r = stats(t).range, ph = (S.time * 0.6 + t.x * 0.01) % 1;
@@ -2345,6 +2357,3 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   requestAnimationFrame(frame);
 })();
 </script>
-
-</body>
-</html>
