@@ -226,7 +226,9 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   .tbtn canvas { grid-row: auto; width: 34px; height: 34px; }
   .tbtn .nm { justify-content: center; font-size: 11px; line-height: 1.2; }
   .tbtn .nm > span:first-child, .tbtn .rl { display: none; }
-  .tbtn.locked .cost { color: var(--muted); font-size: 9.5px; }
+  /* in the compact dock, a locked tower shows its unlock stage in place of its cost */
+  .tbtn.locked .cost { color: var(--muted); font-size: 0; }
+  .tbtn.locked .cost::after { content: attr(data-u); font-size: 9.5px; }
   .mctrl .btn { min-height: 42px; padding: 6px 12px; }
   .stage { --reserve: 360px; }
 }
@@ -1440,7 +1442,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
         b.dataset.lock = String(open);
         b.classList.toggle('locked', !open);
         b.querySelector('.role').textContent = open ? TOWERS[k].role : `Unlocks at stage ${TOWERS[k].unlock}`;
-        b.querySelector('.cost').textContent = open ? TOWERS[k].cost : `Stage ${TOWERS[k].unlock}`;
+        b.querySelector('.cost').dataset.u = `Stage ${TOWERS[k].unlock}`;
       }
     }
     const field = {}, next = {};
