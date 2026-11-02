@@ -81,6 +81,11 @@ h1 span { color: var(--accent); }
 canvas#cv { display: block; width: 100%; height: auto; aspect-ratio: 16 / 10; touch-action: manipulation; cursor: crosshair; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
 .stage.portrait canvas#cv { aspect-ratio: 10 / 16; }
 @media (max-height: 520px) and (orientation: landscape) { .stage { --reserve: 24px; } }
+.ksay { position: absolute; z-index: 4; max-width: min(250px, 46%); background: #f3e9e5; color: #1d1517; border-radius: 12px; padding: 8px 10px; font-size: 13px; line-height: 1.38; pointer-events: none; box-shadow: 0 8px 24px rgba(0,0,0,.4); }
+.ksay::after { content: ""; position: absolute; right: 34px; bottom: -7px; border: 7px solid transparent; border-bottom: 0; border-top-color: #f3e9e5; }
+.ksay.below::after { bottom: auto; top: -7px; border: 7px solid transparent; border-top: 0; border-bottom-color: #f3e9e5; }
+.ksay b { display: block; font-family: var(--mono); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; color: #8a5a5a; margin-bottom: 2px; }
+@media (max-width: 520px) { .ksay { font-size: 11.5px; padding: 6px 8px; max-width: 62%; } }
 .hint { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); background: color-mix(in srgb, var(--bg) 88%, transparent); border: 1px solid var(--line); color: var(--fg); font-size: 13px; padding: 5px 12px; border-radius: 999px; pointer-events: none; white-space: nowrap; }
 .coach { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: min(460px, calc(100% - 20px)); z-index: 6;
   display: flex; gap: 10px; align-items: center; background: var(--panel); border: 1.5px solid var(--accent); border-radius: 12px; padding: 9px 10px 9px 12px;
@@ -288,7 +293,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
 <div class="app" id="app">
   <header>
     <div>
-      <h1>Renal <span>Tower</span> Defense <span class="vtag">2.1.1</span></h1>
+      <h1>Renal <span>Tower</span> Defense <span class="vtag">2.2</span></h1>
       <p class="tag">Stop threats in the bloodstream before they reach the kidney.</p>
     </div>
     <div class="stats">
@@ -321,6 +326,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       <div class="stage" id="stagebox">
         <canvas id="cv" width="960" height="600" aria-label="Game board: a blood vessel winding across tissue toward the kidney"></canvas>
         <div class="hint" id="hint" hidden></div>
+        <div class="ksay" id="ksay" hidden></div>
         <div class="coach" id="coach" hidden></div>
         <div class="pop" id="pop" hidden></div>
         <div class="overlay" id="overlay"><div class="box" id="ov"></div></div>
@@ -466,6 +472,10 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     }
     // ---- music ----
     const BPM = 76, E = 60 / BPM / 2;
+    // Boss loop: D minor at 100 bpm. Dm, Bb, Gm, then A major for tension; a driving bass,
+    // a heartbeat on every half bar, a dark ostinato and an alarm figure in the last bar.
+    const EB = 60 / 100 / 2, BPROG = [[50, 53, 57, 38], [46, 50, 53, 34], [43, 46, 50, 31], [45, 49, 52, 33]];
+    let boss = 0;
     const PROG = [[57, 60, 64, 45], [53, 57, 60, 41], [55, 60, 64, 48], [55, 59, 62, 43]];
     const ARP = [0, 1, 2, 1, 0, 2, 1, 2];
     function pad(notes, t, dur) {
@@ -494,17 +504,36 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       tone('triangle', mtof(m), 0, E * 0.9, intensity ? 0.035 : 0.025, t, musicBus, 0.01);
       if (intensity && pos % 2 === 1) noise(0.04, 0.025, 'highpass', 7000, t, musicBus);
     }
+    function bass(m, t, dur, vol) {
+      const o = ac.createOscillator(), f = ac.createBiquadFilter(), g = ac.createGain();
+      o.type = 'sawtooth'; o.frequency.value = mtof(m); f.type = 'lowpass'; f.frequency.value = 520; f.Q.value = 4;
+      env(g, t, 0.005, vol, dur); o.connect(f); f.connect(g); g.connect(musicBus); o.start(t); o.stop(t + dur + 0.05);
+    }
+    function bossBeat(s, t) {
+      const bar = Math.floor(s / 8) % 4, pos = s % 8, ch = BPROG[bar];
+      if (pos === 0) pad(ch.slice(0, 3), t, EB * 8);
+      bass(ch[3] + (pos % 2 ? 12 : 0), t, EB * 0.8, 0.075);
+      if (pos === 0 || pos === 4) {   // a faster, heavier heartbeat
+        tone('sine', 66, 42, 0.15, 0.3, t, musicBus, 0.003);
+        tone('sine', 60, 38, 0.12, 0.2, t + 0.15, musicBus, 0.003);
+      }
+      const OST = [0, 2, 1, 2, 0, 2, 1, 2];
+      tone('triangle', mtof(ch[OST[pos]] + 12), 0, EB * 0.85, 0.032, t, musicBus, 0.006);
+      if (bar === 3 && pos % 2 === 0) tone('square', mtof(pos % 4 ? 81 : 85), 0, EB * 0.7, 0.012, t, musicBus, 0.01);
+      if (bar === 3 && pos >= 6) tone('sine', 150 - (pos - 6) * 30, 60, 0.18, 0.16, t, musicBus, 0.003);   // tom fill
+      noise(0.03, pos % 2 ? 0.03 : 0.018, 'highpass', 7500, t, musicBus);
+    }
     function startMusic() {
       if (!ac || playing) return;
       playing = true; nextT = ac.currentTime + 0.1; stepN = 0;
       timer = setInterval(() => {
         if (!ac) return;
-        while (nextT < ac.currentTime + 0.35) { beat(stepN, nextT); nextT += E; stepN++; }
+        while (nextT < ac.currentTime + 0.35) { (boss ? bossBeat : beat)(stepN, nextT); nextT += boss ? EB : E; stepN++; }
       }, 90);
     }
     function stopMusic() { playing = false; if (timer) clearInterval(timer); timer = null; }
     // ---- effects ----
-    const GAP = { kill: 0.05, shot_diet: 0.06, shot_flush: 0.08, shot_reg: 0.08, shot_ex: 0.07, shot_quit: 0.1, shot_med: 0.15, splash: 0.07, leak: 0.12, place: 0.05 };
+    const GAP = { bossSpawn: 0.3, kill: 0.05, shot_diet: 0.06, shot_flush: 0.08, shot_reg: 0.08, shot_ex: 0.07, shot_quit: 0.1, shot_med: 0.15, splash: 0.07, leak: 0.12, place: 0.05 };
     const FX = {
       shot_diet: t => { noise(0.035, 0.12, 'highpass', 2600, t); tone('square', 700, 380, 0.03, 0.025, t); },        // crunchy bite
       shot_flush: t => tone('sine', 620, 170, 0.2, 0.16, t, null, 0.01),                                                // water bloop
@@ -523,7 +552,13 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       wave: t => { noise(0.6, 0.05, 'bandpass', 600, t, null, 0.6, 0.45); tone('sine', 220, 440, 0.6, 0.06, t, null, 0.3); },
       stage: t => [69, 72, 76, 81, 84].forEach((m, i) => tone('triangle', mtof(m), 0, 0.22, 0.08, t + i * 0.09)),
       win: t => [60, 64, 67, 72, 76, 79, 84].forEach((m, i) => tone('triangle', mtof(m), 0, 0.3, 0.09, t + i * 0.1)),
-      lose: t => [64, 60, 57, 52].forEach((m, i) => tone('sine', mtof(m), 0, 0.4, 0.1, t + i * 0.22))
+      lose: t => [64, 60, 57, 52].forEach((m, i) => tone('sine', mtof(m), 0, 0.4, 0.1, t + i * 0.22)),
+      boss: t => {   // two drum hits, then a low brass-like chord with a rising alarm
+        for (const d of [0, 0.3]) { tone('sine', 72, 36, 0.5, 0.38, t + d, null, 0.003); noise(0.25, 0.12, 'lowpass', 320, t + d); }
+        [38, 50, 53, 57].forEach(m => tone('sawtooth', mtof(m), 0, 1.0, 0.03, t + 0.6, null, 0.06));
+        tone('square', mtof(74), mtof(81), 0.7, 0.025, t + 0.6, null, 0.05);
+      },
+      bossSpawn: t => { tone('sine', 95, 40, 0.45, 0.32, t, null, 0.003); noise(0.3, 0.1, 'bandpass', 480, t, null, 0.7); }
     };
     return {
       init, startMusic, stopMusic,
@@ -534,7 +569,17 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
         last[name] = t; FX[name](t + 0.005);
       },
       setIntensity(v) { intensity = v ? 1 : 0; },
-      duck(on) { if (musicBus && musicOn) musicBus.gain.setTargetAtTime(on ? 0.12 : 0.55, ac.currentTime, 0.15); },
+      // Boss music starts at the top of its own loop; calm music returns when the boss wave ends.
+      setBoss(v) { const b = v ? 1 : 0; if (b === boss) return; boss = b; stepN = 0; },
+      // Boss entrance: sting, music dips for the banner, then the boss loop.
+      bossIntro() {
+        boss = 1; stepN = 0;
+        if (!ac) return;
+        const t = ac.currentTime;
+        if (musicBus && musicOn) { const g = musicBus.gain; g.cancelScheduledValues(t); g.setTargetAtTime(0.12, t, 0.08); g.setTargetAtTime(0.55, t + 1.9, 0.3); }
+        this.play('boss');
+      },
+      duck(on) { if (musicBus && musicOn) { musicBus.gain.cancelScheduledValues(ac.currentTime); musicBus.gain.setTargetAtTime(on ? 0.12 : 0.55, ac.currentTime, 0.15); } },
       toggleMusic() { musicOn = !musicOn; save(); if (musicBus) musicBus.gain.setTargetAtTime(musicOn ? 0.55 : 0, ac.currentTime, 0.1); return musicOn; },
       toggleSfx() { sfxOn = !sfxOn; save(); if (sfxBus) sfxBus.gain.setTargetAtTime(sfxOn ? 0.6 : 0, ac.currentTime, 0.05); return sfxOn; },
       get musicOn() { return musicOn; }, get sfxOn() { return sfxOn; }
@@ -1454,8 +1499,9 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       coins: MODES[mode].coins, egfr: 100, stage: 1, waveInStage: 0, inWave: false, queue: [], mult: 1, spawnT: 0,
       enemies: [], towers: [], shots: [], rings: [], drops: [], time: 0, paused: false, over: false, started: false,
       build: null, sel: null, hover: null, seen: new Set(), fact: null, kills: {}, score: 0, autoT: -1,
-      banner: null, kHit: 0, kCheer: 0, leaked: 0, spentTotal: 0
+      banner: null, kHit: 0, kCheer: 0, kWorry: 0, kSay: null, leaked: 0, spentTotal: 0
     };
+    SFX.setBoss(false);
     ETYPES.forEach(t => S.kills[t] = 0);
     MAP = genMap(TURNS[0]);
     panelKey = '';
@@ -1467,9 +1513,9 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     const sn = S.snap;
     Object.assign(S, { coins: sn.coins, egfr: sn.egfr, score: sn.score, leaked: sn.leaked, kills: { ...sn.kills },
       towers: [], enemies: [], shots: [], rings: [], drops: [], queue: [], inWave: false, waveInStage: 0,
-      sel: null, build: null, pending: null, paused: false, over: false, kHit: 0, kCheer: 0, spentTotal: sn.spentTotal, autoT: autoPref ? FIRST_GAP : -1 });
+      sel: null, build: null, pending: null, paused: false, over: false, kHit: 0, kCheer: 0, kWorry: 0, kSay: null, spentTotal: sn.spentTotal, autoT: autoPref ? FIRST_GAP : -1 });
     S.banner = { title: `Stage ${S.stage} restarted`, sub: 'Back to wave 1 with the energy and kidney function you started the stage with', t: 2.6 };
-    SFX.setIntensity(false); panelKey = ''; popKey = '';
+    SFX.setIntensity(false); SFX.setBoss(false); panelKey = ''; popKey = '';
   }
   function showRestart() {
     if (!S.started || S.over) return;
@@ -1954,6 +2000,27 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     S.queue = w.q; S.mult = w.mult; S.spawnT = 0.6; S.inWave = true; S.autoT = -1;
     SFX.setIntensity(true); SFX.play('wave');
     S.banner = { title: `Wave ${S.waveInStage + 1} of 5`, sub: `Stage ${S.stage} · wave ${n} of 25`, t: 1.8 };
+    const bosses = ['hyp', 'dia'].map(k => [k, S.queue.filter(q => q.type === k).length]).filter(([, c]) => c);
+    if (bosses.length) bossEntrance(bosses);
+  }
+  // Boss wave: a red banner naming the bosses, a sting and boss music, a worried kidney,
+  // and the first time each boss is met, the kidney says what it does.
+  const BOSS_LINES = {
+    hyp: 'High blood pressure scars my small arteries, and that pushes the pressure up even more.',
+    dia: 'Diabetes is the leading cause of kidney failure, behind about 2 in 3 new cases in Singapore.'
+  };
+  function bossEntrance(bosses) {
+    const names = bosses.map(([k, c]) => ENEMIES[k].name + (c > 1 ? ` ×${c}` : '')).join(' · ');
+    S.banner = { title: bosses.reduce((a, [, c]) => a + c, 0) > 1 ? 'Bosses incoming' : 'Boss incoming', sub: names, t: 2.8, boss: true };
+    S.kWorry = 2.8;
+    SFX.bossIntro();
+    let seen = [];
+    try { seen = JSON.parse(localStorage.getItem('rtd-boss-seen') || '[]'); } catch (e) {}
+    const first = bosses.map(([k]) => k).find(k => !seen.includes(k));
+    if (first) {
+      S.kSay = { who: ENEMIES[first].name, text: BOSS_LINES[first], d: 2.8, t: 7 };   // speaks once the banner has gone
+      try { localStorage.setItem('rtd-boss-seen', JSON.stringify(seen.concat(first))); } catch (e) {}
+    }
   }
 
   // ---------- Simulation ----------
@@ -1961,6 +2028,11 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     const d = ENEMIES[type], hp = Math.round(d.hp * S.mult * ENEMY_HP), p = posAt(Math.max(0, dist));
     into.push({ type, d, hp, max: hp, dist: Math.max(0, dist), slowUntil: 0, slowMul: 1, x: p.x, y: p.y, spin: Math.random() * 6, ph: Math.random() * 6, lx: 1, ly: 0, hurtT: 0 });
     if (!S.seen.has(type)) { S.seen.add(type); if (!S.sel) { S.fact = { kind: 'enemy', key: type }; panelKey = ''; } }
+    if ((type === 'hyp' || type === 'dia') && into === S.enemies) {
+      SFX.play('bossSpawn');
+      if (!S.banner) S.banner = { title: `${d.name} has arrived`, sub: d.short, t: 1.8, boss: true };
+      if (!REDUCE_MOTION) S.rings.push({ x: p.x, y: p.y, r: d.r * 4, t: 0.7, boss: true });
+    }
   }
   const hurt = (e, dmg, src) => {
     e.hurtT = 0.15;
@@ -1988,7 +2060,8 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   function step(dt) {
     S.time += dt;
     if (S.banner) { S.banner.t -= dt; if (S.banner.t <= 0) S.banner = null; }
-    S.kHit = Math.max(0, S.kHit - dt); S.kCheer = Math.max(0, S.kCheer - dt);
+    S.kHit = Math.max(0, S.kHit - dt); S.kCheer = Math.max(0, S.kCheer - dt); S.kWorry = Math.max(0, (S.kWorry || 0) - dt);
+    if (S.kSay) { if (S.kSay.d > 0) S.kSay.d -= dt; else { S.kSay.t -= dt; if (S.kSay.t <= 0) S.kSay = null; } }
     if (!S.inWave && S.autoT >= 0) { S.autoT -= dt; if (S.autoT < 0) startWave(); }
     if (S.inWave && S.queue.length) {
       S.spawnT -= dt;
@@ -2100,7 +2173,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
 
   function waveCleared() {
     const n = waveNo();
-    S.inWave = false; S.waveInStage++; S.coins += 10 + n * 2; SFX.setIntensity(false); S.kCheer = 0.9;
+    S.inWave = false; S.waveInStage++; S.coins += 10 + n * 2; SFX.setIntensity(false); SFX.setBoss(false); S.kCheer = 0.9;
     if (S.waveInStage >= PER_STAGE) {
       if (S.stage >= STAGES) { end(true); return; }
       const back = S.towers.reduce((a, t) => a + t.spent, 0);
@@ -2119,7 +2192,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   function end(won) {
     if (S.over) return;
     S.over = true; S.inWave = false; S.build = null; S.sel = null; S.autoT = -1;
-    SFX.setIntensity(false); SFX.play(won ? 'win' : 'lose');
+    SFX.setIntensity(false); SFX.setBoss(false); SFX.play(won ? 'win' : 'lose');
     showScore(won);
   }
 
@@ -2140,7 +2213,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   function drawKidney() {
     const { x, y, w, h } = MAP.kid, t = S.time, g = S.egfr, K = '#4a171c';
     const hit = S.kHit > 0 ? S.kHit / 0.4 : 0, cheer = S.kCheer > 0 ? S.kCheer / 0.9 : 0;
-    const mood = S.over && g < 15 ? 'ko' : hit > 0.25 ? 'hit' : cheer > 0 ? 'cheer' : g >= 60 ? 'happy' : g >= 30 ? 'worried' : 'sad';
+    const mood = S.over && g < 15 ? 'ko' : hit > 0.25 ? 'hit' : S.kWorry > 0 && g >= 30 ? 'worried' : cheer > 0 ? 'cheer' : g >= 60 ? 'happy' : g >= 30 ? 'worried' : 'sad';
     const tube = (draw, outer, inner, col) => { draw(); ctx.strokeStyle = K; ctx.lineWidth = outer; ctx.stroke(); draw(); ctx.strokeStyle = col; ctx.lineWidth = inner; ctx.stroke(); };
     ctx.save();
     ctx.lineJoin = 'round'; ctx.lineCap = 'round';
@@ -2357,6 +2430,14 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     }
     for (const s of S.shots) drawShot(s);
     for (const r of S.rings) {
+      if (r.boss) {   // boss spawn: a white flash and an expanding red ring
+        const q = 1 - r.t / 0.7;
+        ctx.fillStyle = `rgba(255,240,235,${0.55 * Math.max(0, 1 - q * 2.5)})`;
+        ctx.beginPath(); ctx.arc(r.x, r.y, r.r * 0.35, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = `rgba(226,96,79,${0.9 * (1 - q)})`; ctx.lineWidth = 5 * (1 - q) + 1;
+        ctx.beginPath(); ctx.arc(r.x, r.y, r.r * (0.3 + 0.7 * q), 0, Math.PI * 2); ctx.stroke();
+        continue;
+      }
       if (r.splash) {
         const q = 1 - r.t / 0.3;
         ctx.strokeStyle = `rgba(143,204,242,${0.8 * (1 - q)})`; ctx.lineWidth = 3 * (1 - q) + 1;
@@ -2373,12 +2454,17 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     if (S.banner && !S.over) {
       const a = Math.min(1, S.banner.t / 0.4), bw = Math.min(520, SW - 40);
       ctx.globalAlpha = a;
-      ctx.fillStyle = 'rgba(23,17,19,0.82)';
+      const bb = S.banner.boss;
+      ctx.fillStyle = bb ? 'rgba(74,14,22,0.9)' : 'rgba(23,17,19,0.82)';
       ctx.beginPath(); ctx.roundRect(SW / 2 - bw / 2, 22, bw, 92 * big, 14); ctx.fill();
+      if (bb) {
+        const pulse = REDUCE_MOTION ? 1 : 0.6 + 0.4 * Math.abs(Math.sin(S.time * 5));
+        ctx.strokeStyle = `rgba(226,96,79,${pulse})`; ctx.lineWidth = 3; ctx.stroke();
+      }
       ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-      ctx.fillStyle = P.fg; ctx.font = `800 ${Math.round(32 * big)}px "Bricolage Grotesque", system-ui, sans-serif`;
+      ctx.fillStyle = bb ? '#ffd7cf' : P.fg; ctx.font = `800 ${Math.round(32 * big)}px "Bricolage Grotesque", system-ui, sans-serif`;
       ctx.fillText(S.banner.title, SW / 2, 22 + 32 * big, bw - 24);
-      ctx.fillStyle = '#b5a29e'; ctx.font = `600 ${Math.round(16 * big)}px "Atkinson Hyperlegible", system-ui, sans-serif`;
+      ctx.fillStyle = bb ? '#f0a296' : '#b5a29e'; ctx.font = `${bb ? 700 : 600} ${Math.round((bb ? 20 : 16) * big)}px "Atkinson Hyperlegible", system-ui, sans-serif`;
       ctx.fillText(S.banner.sub, SW / 2, 22 + 68 * big, bw - 24);
       ctx.globalAlpha = 1;
     }
@@ -2530,6 +2616,19 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       $('track').setAttribute('aria-valuenow', g);
     }
     $('gfr').classList.toggle('hit', S.kHit > 0.2);
+    const ks = $('ksay'), say = S.kSay && !S.over && !(S.kSay.d > 0) ? S.kSay : null;
+    if (!say) { if (!ks.hidden) { ks.hidden = true; ks.dataset.k = ''; } }
+    else if (ks.dataset.k !== say.text) {
+      ks.dataset.k = say.text; ks.innerHTML = `<b>Kidney · about ${say.who}</b>${say.text}`; ks.hidden = false;
+      // above the kidney when it fits, otherwise below it, always inside the board and clear of the vessel's entry
+      const k = MAP.kid, bh = cv.getBoundingClientRect().height, sc = bh / H, h = ks.offsetHeight;
+      const top = (k.y - k.h * 0.42) * sc, bot = (k.y + k.h * 0.42) * sc;
+      const below = h + 10 > top && bh - bot >= top;
+      ks.classList.toggle('below', below);
+      ks.style.right = Math.max(1, (1 - (k.x + k.w * 0.4) / W) * 100) + '%';
+      ks.style.bottom = '';
+      ks.style.top = Math.max(4, Math.min(bh - h - 4, below ? bot + 8 : top - h - 8)) + 'px';
+    }
     setText('score', String(S.score));
     setText('mode', MODES[mode].name);
     setText('coins', String(S.coins));
