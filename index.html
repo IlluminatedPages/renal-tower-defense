@@ -241,6 +241,11 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
 }
 @media (max-width: 520px) { .overlay .box { gap: 8px; } table.score th, table.score td { padding: 4px 4px; font-size: 12.5px; } }
 /* placed last so it overrides the base rules above */
+.mctrl #mpause[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
+.seg .pause[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
+@media (max-width: 520px) and (orientation: portrait) {
+  .board > .stage { width: calc(100% + max(16px, env(safe-area-inset-left, 0px)) + max(16px, env(safe-area-inset-right, 0px)) - 16px); max-width: none; margin-inline: calc(8px - max(16px, env(safe-area-inset-left, 0px))) calc(8px - max(16px, env(safe-area-inset-right, 0px))); }
+}
 @media (max-width: 640px) {
   .app { gap: 10px; padding-block: 12px 24px; }
   .tag { display: none; }
@@ -293,7 +298,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
 <div class="app" id="app">
   <header>
     <div>
-      <h1>Renal <span>Tower</span> Defense <span class="vtag">2.2</span></h1>
+      <h1>Renal <span>Tower</span> Defense <span class="vtag">2.2.1</span></h1>
       <p class="tag">Stop threats in the bloodstream before they reach the kidney.</p>
     </div>
     <div class="stats">
@@ -337,7 +342,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
         <div class="mctrl">
           <button class="btn primary" id="mstart" type="button">Start wave</button>
           <button class="btn" id="mspeed" type="button" aria-label="Change speed">×1</button>
-          <button class="btn" id="mpause" type="button">Pause</button>
+          <button class="btn" id="mpause" type="button" aria-label="Pause" aria-pressed="false">❚❚</button>
           <button class="btn" id="mrestart" type="button" aria-label="Restart">↻</button>
           <button class="btn" id="mguide" type="button" aria-label="Field guide">?</button>
         </div>
@@ -1653,7 +1658,8 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   const fitDock = () => { $('app').style.paddingBottom = dockQ.matches ? (dock.offsetHeight + 16) + 'px' : ''; };
   if (window.ResizeObserver) new ResizeObserver(fitDock).observe(dock);
   window.addEventListener('resize', fitDock); fitDock();
-  $('mstart').addEventListener('click', startWave);
+  const startOrResume = () => { if (S.paused && S.started && !S.over) pauseBtn.click(); else startWave(); };
+  $('mstart').addEventListener('click', startOrResume);
   $('mrestart').addEventListener('click', showRestart);
   $('mguide').addEventListener('click', () => showGuide());
   $('guide').addEventListener('click', () => showGuide());
@@ -1682,7 +1688,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     if (autoPref && S.started && !S.inWave && !S.over && S.autoT < 0 && !(TUT && TUT.step <= 2)) S.autoT = WAVE_GAP;
     if (!autoPref) S.autoT = -1;
   });
-  $('start').addEventListener('click', startWave);
+  $('start').addEventListener('click', startOrResume);
 
   function pickBuild(k) {
     if (S.over || !S.started || !unlocked(k)) return;
@@ -2635,12 +2641,13 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     setText('stage', `${S.stage} <small>/ 5</small>`, true);
     setText('wave', `${Math.min(PER_STAGE, S.waveInStage + 1)} <small>/ 5 · #${Math.min(TOTAL_WAVES, waveNo())}</small>`, true);
     const sb = $('start');
-    const label = !S.started ? 'Start wave 1' : S.over ? 'Game over' : S.inWave ? `Wave ${S.waveInStage + 1} in progress` :
+    const label = !S.started ? 'Start wave 1' : S.over ? 'Game over' : S.paused ? 'Resume' : S.inWave ? `Wave ${S.waveInStage + 1} in progress` :
       S.autoT >= 0 ? `Start now · next wave in ${Math.ceil(S.autoT)}` : `Start wave ${S.waveInStage + 1} of stage ${S.stage}`;
     if (sb.textContent !== label) sb.textContent = label;
-    sb.disabled = !S.started || S.inWave || S.over;
+    sb.disabled = !S.started || S.over || (S.inWave && !S.paused);
     speedBtns.forEach((b, i) => b.setAttribute('aria-pressed', String(speedPref === i + 1)));
-    pauseBtn.textContent = S.paused ? 'Resume' : 'Pause';
+    if (pauseBtn.textContent !== 'Pause') pauseBtn.textContent = 'Pause';
+    pauseBtn.setAttribute('aria-pressed', String(!!S.paused));
     for (const k of ORDER) {
       const b = $('tb-' + k), open = unlocked(k);
       b.disabled = !open || S.coins < TOWERS[k].cost || S.over || !S.started;
@@ -2669,13 +2676,14 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     renderPanel();
     renderPop();
     const anyChip = ETYPES.some(k => !erows[k].chip.hidden);
-    if (last.noChips !== anyChip) { last.noChips = anyChip; noChips.hidden = anyChip; }
-    const ms = $('mstart'), ml = !S.started ? 'Start' : S.over ? 'Game over' : S.inWave ? `Wave ${S.waveInStage + 1} of 5…` :
-      S.autoT >= 0 ? `Start now · ${Math.ceil(S.autoT)}` : `Start wave ${S.waveInStage + 1} of 5`;
+    if (last.noChips !== anyChip) { last.noChips = anyChip; noChips.hidden = true; $('echips').hidden = !anyChip; }
+    // 2. short labels so the phone's Start button never wraps; while paused it is the one way to resume
+    const ms = $('mstart'), ml = !S.started ? 'Start' : S.over ? 'Game over' : S.paused ? 'Resume' : S.inWave ? `Wave ${S.waveInStage + 1}/5` :
+      S.autoT >= 0 ? `Start now · ${Math.ceil(S.autoT)}` : `Start wave ${S.waveInStage + 1}`;
     if (ms.textContent !== ml) ms.textContent = ml;
-    ms.disabled = !S.started || S.inWave || S.over;
+    ms.disabled = !S.started || S.over || (S.inWave && !S.paused);
     setText('mspeed', '×' + speedPref);
-    setText('mpause', S.paused ? 'Resume' : 'Pause');
+    const mp = $('mpause'); mp.setAttribute('aria-pressed', String(!!S.paused)); mp.setAttribute('aria-label', S.paused ? 'Paused' : 'Pause');
   }
 
   // ---------- Loop ----------
