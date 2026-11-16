@@ -405,6 +405,100 @@ body.at-home { overflow: hidden; }
   .mctrl .btn { min-height: 40px; }
   .stage { --reserve: 84px; }
 }
+
+/* ---------- Fit to screen (2.3) ----------
+   The board is sized by script (fitBoard) so that the board and the tower buttons are always on screen together.
+   Three arrangements: desktop and landscape tablets (tower row under the board, side rail scrolls on its own),
+   portrait phones and tablets (dock pinned to the bottom), and phones held sideways (dock becomes a rail on the right). */
+@media (min-width: 921px) {
+  .build { grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; }
+  .tbtn { grid-template-columns: minmax(0, 1fr); justify-items: center; text-align: center; padding: 6px 4px 5px; gap: 1px; align-content: start; }
+  .tbtn canvas { grid-row: auto; width: 40px; height: 40px; }
+  .tbtn .nm { display: grid; justify-items: center; gap: 0; font-size: 12.5px; line-height: 1.2; }
+  .tbtn .nm > span:first-child { text-wrap: balance; }
+  .tbtn .rl { display: none; }
+  .tbtn.locked .cost { color: var(--muted); font-size: 0; }
+  .tbtn.locked .cost::after { content: attr(data-u); font-size: 11px; }
+  aside { max-height: var(--aside-h, none); overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; padding-right: 2px; }
+}
+@media (min-width: 921px) and (max-height: 900px) {
+  .app { gap: 10px; padding-block: 12px 14px; }
+  .tag { display: none; }
+  .stat { padding: 4px 12px; }
+  .stat .v { font-size: 18px; }
+  .gfr { padding: 8px 14px 6px; gap: 5px; }
+  .track { height: 16px; }
+}
+@media (max-width: 920px) {
+  .mctrl .btn:not(#mstart) { min-width: 46px; }
+  .echip { min-height: 36px; }
+  .sound .btn { min-height: 44px; }
+}
+@media (max-width: 520px) and (orientation: portrait) {
+  /* Start gets its own full-width row; the five small controls share the row below at thumb size */
+  .mctrl { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .mctrl #mstart { grid-column: 1 / -1; min-height: 46px; }
+  .mctrl .btn:not(#mstart) { min-width: 0; min-height: 44px; }
+}
+@media (max-width: 920px) and (max-height: 520px) and (orientation: landscape) {
+  :root { --side: clamp(214px, calc(100vw - (100dvh - 62px) * 1.6 - 28px), 330px); }
+  .app { grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 6px 8px; align-items: center; padding-block: 6px 8px;
+    padding-left: max(8px, env(safe-area-inset-left, 0px)); padding-right: calc(var(--side) + 8px + env(safe-area-inset-right, 0px)); }
+  header h1, .tag { display: none; }
+  header { display: block; }
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; width: 100%; }
+  .stats .stat:nth-child(3) { display: none; }   /* difficulty is hidden here to save room */
+  .stat { min-width: 0; padding: 2px 6px; border-radius: 8px; }
+  .stat .k { font-size: 9px; letter-spacing: .04em; }
+  .stat .v { font-size: 14px; white-space: nowrap; }
+  .stat .v small { display: none; }
+  .gfr { padding: 4px 10px 5px; gap: 3px; border-radius: 10px; }
+  .gfr-head { flex-wrap: nowrap; align-items: center; }
+  .gfr-head .k { font-size: 9px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; flex: 1 1 0; }
+  .gfr-val { flex: none; }
+  .gfr { min-width: 0; grid-template-columns: minmax(0, 1fr); }
+  .gfr-val { font-size: 14px; }
+  .pill { font-size: 10px; padding: 1px 6px; }
+  .track { height: 10px; }
+  .bands { display: none; }
+  .main { grid-column: 1 / -1; }
+  .board > .stage { margin-inline: auto; }
+  .dock { top: 0; bottom: 0; left: auto; right: 0; width: calc(var(--side) + env(safe-area-inset-right, 0px)); grid-template-columns: minmax(0, 1fr); align-content: end; gap: 8px;
+    border-top: 0; border-left: 1px solid var(--line); padding: 8px max(8px, env(safe-area-inset-right, 0px)) calc(8px + env(safe-area-inset-bottom, 0px)) 8px; }
+  .build { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .tbtn { min-height: 50px; }
+  .mctrl { grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+  .mctrl #mstart { grid-column: 1 / -1; min-height: 44px; }
+  .mctrl .btn:not(#mstart) { min-width: 0; min-height: 42px; padding-inline: 4px; }
+  .echips { position: fixed; z-index: 16; top: 6px; right: env(safe-area-inset-right, 0px); width: var(--side); padding-inline: 8px; gap: 4px; }
+  .overlay { position: fixed; z-index: 20; background: color-mix(in srgb, var(--bg) 97%, transparent);
+    padding: 12px max(16px, env(safe-area-inset-right, 0px)) 12px max(16px, env(safe-area-inset-left, 0px)); }
+}
+/* home menu on a phone held sideways: title and mascots on the left, buttons on the right */
+@media (max-height: 520px) and (orientation: landscape) {
+  .home-in { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 22px; row-gap: 6px; align-items: center; width: min(920px, 100%);
+    padding-block: calc(10px + env(safe-area-inset-top, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)); }
+  .home-in > .eyebrow { grid-area: 1 / 1; }
+  .home-in > .logo { grid-area: 2 / 1; font-size: clamp(30px, 6.2vw, 52px); white-space: nowrap; }
+  .home-in > .home-tag { grid-area: 3 / 1; font-size: 13px; max-width: none; }
+  .home-in > .hero { grid-area: 4 / 1 / 6 / 1; width: min(100%, calc(42vh * 1.895)); margin-block: 0; }
+  .home-in > .hmodes { grid-area: 1 / 2 / 4 / 2; width: 100%; align-self: end; }
+  .home-in > .home-blurb { display: none; }
+  .home-in > .hstart { grid-area: 4 / 2; width: 100%; min-height: 54px; font-size: 21px; }
+  .home-in > .hmenu { grid-area: 5 / 2; width: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-in > .home-foot { grid-area: 6 / 1 / 6 / -1; max-width: none; }
+  .home-foot br { display: none; }
+  .home-foot span { margin-left: 10px; }
+  .hsound { right: auto; left: max(12px, env(safe-area-inset-left, 0px)); }
+  .hmenu .btn { min-height: 46px; }
+}
+/* large monitors: let the board grow into the extra room */
+@media (min-width: 1500px) and (min-height: 950px) { .app { max-width: 1580px; } }
+/* touch screens on the desktop layout (tablets held sideways): thumb-sized side controls */
+@media (min-width: 921px) and (pointer: coarse) {
+  .seg button { min-height: 44px; }
+  .sound .btn, aside .row .btn { min-height: 44px; }
+}
 </style>
 
 <div class="app" id="app">
@@ -1824,9 +1918,26 @@ body.at-home { overflow: hidden; }
   const pauseBtn = document.createElement('button'); pauseBtn.type = 'button'; pauseBtn.className = 'pause'; pauseBtn.textContent = 'Pause';
   pauseBtn.addEventListener('click', () => { if (S.started && !S.over) { S.paused = !S.paused; SFX.duck(S.paused); } });
   const dock = $('dock'), dockQ = window.matchMedia('(max-width: 920px)');
-  const fitDock = () => { $('app').style.paddingBottom = dockQ.matches ? (dock.offsetHeight + 16) + 'px' : ''; };
-  if (window.ResizeObserver) new ResizeObserver(fitDock).observe(dock);
-  window.addEventListener('resize', fitDock); fitDock();
+  const landQ = window.matchMedia('(max-width: 920px) and (max-height: 520px) and (orientation: landscape)');
+  // Fit to screen: reserve the space above the board and the space the tower buttons need, and give the board the rest.
+  // Desktop: tower row under the board. Portrait phone or tablet: dock pinned to the bottom. Phone sideways: dock at the side.
+  function fitBoard() {
+    const st = $('stagebox'), bottomDock = dockQ.matches && !landQ.matches;
+    $('app').style.paddingBottom = bottomDock ? (dock.offsetHeight + 16) + 'px' : '';
+    const top = st.getBoundingClientRect().top + window.scrollY;
+    const padB = parseFloat(getComputedStyle($('app')).paddingBottom) || 16;
+    const below = landQ.matches ? 8 : bottomDock ? dock.offsetHeight + $('echips').offsetHeight + 22 : dock.offsetHeight + 14 + padB;
+    st.style.setProperty('--reserve', Math.round(top + below) + 'px');
+    const side = document.querySelector('aside');
+    if (dockQ.matches) side.style.removeProperty('--aside-h');
+    else side.style.setProperty('--aside-h', Math.max(260, window.innerHeight - (side.getBoundingClientRect().top + window.scrollY) - padB - 2) + 'px');
+    popKey = '';
+  }
+  const fitDock = fitBoard;
+  if (window.ResizeObserver) { const ro = new ResizeObserver(fitBoard); ro.observe(dock); ro.observe(document.querySelector('header')); ro.observe($('gfr')); }
+  window.addEventListener('resize', fitBoard); window.addEventListener('orientationchange', () => setTimeout(fitBoard, 250));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitBoard);
+  fitBoard();
   const startOrResume = () => { if (S.paused && S.started && !S.over) pauseBtn.click(); else startWave(); };
   $('mstart').addEventListener('click', startOrResume);
   $('mrestart').addEventListener('click', showRestart);
