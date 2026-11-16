@@ -3,10 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Renal Defense: a free kidney health tower defense game. Place healthy-habit defenders to stop threats before they reach the kidney.">
+<meta name="theme-color" content="#171113">
+<meta property="og:title" content="Renal Defense">
+<meta property="og:description" content="A kidney health tower defense game. Stop threats in the bloodstream before they reach the kidney.">
+<meta property="og:type" content="website">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23171113'/%3E%3Cpath d='M35 9c12 0 19 10 19 23S47 55 35 55c-10 0-16-7-12-14 2-4 6-5 6-9s-4-5-6-9c-4-7 2-14 12-14z' fill='%23d9534f' stroke='%234a171c' stroke-width='4' stroke-linejoin='round'/%3E%3Ccircle cx='37' cy='27' r='3' fill='%231d1517'/%3E%3Ccircle cx='46' cy='27' r='3' fill='%231d1517'/%3E%3C/svg%3E">
 <style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}</style>
 </head>
 <body>
-<title>Renal Tower Defense 2.0</title>
+<title>Renal Defense</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -236,10 +242,107 @@ table.score td { font-family: var(--mono); }
 table.score td:first-child { font-family: var(--body); }
 table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; color: var(--accent); }
 @media (max-width: 700px) {
-  .overlay { position: fixed; z-index: 20;
+  .overlay { position: fixed; z-index: 20; background: color-mix(in srgb, var(--bg) 97%, transparent);
     padding: calc(16px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(16px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
 }
 @media (max-width: 520px) { .overlay .box { gap: 8px; } table.score th, table.score td { padding: 4px 4px; font-size: 12.5px; } }
+/* ---------- Home menu (2.3) ---------- */
+body.at-home { overflow: hidden; }
+.home { position: fixed; inset: 0; z-index: 60; overflow-y: auto; -webkit-overflow-scrolling: touch;
+  background: radial-gradient(120% 70% at 50% 0%, #43202a 0%, #23161b 48%, var(--bg) 100%); display: grid; }
+.home-in { width: min(820px, 100%); margin: auto; display: grid; gap: 12px; justify-items: center; text-align: center;
+  padding: calc(18px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(18px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.home .eyebrow { letter-spacing: .18em; color: var(--accent); }
+.logo { font-family: var(--display); font-weight: 800; font-size: clamp(46px, 12.5vw, 92px); line-height: .9; letter-spacing: -0.025em; margin: 0; color: var(--fg);
+  text-shadow: 0 3px 0 #4a171c, 0 5px 0 rgba(74,23,28,.55), 0 14px 28px rgba(0,0,0,.5); text-wrap: balance; }
+.logo span { color: var(--accent); }
+.home-tag { margin: 0; color: var(--muted); font-size: 15px; max-width: 34ch; text-wrap: balance; }
+.hero { display: block; width: min(100%, 720px, calc(36vh * 1.895)); aspect-ratio: 720 / 380; margin-block: -6px -2px; touch-action: manipulation; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.hmodes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; width: min(460px, 100%); }
+.hmode { font: inherit; color: var(--fg); background: color-mix(in srgb, var(--panel) 80%, transparent); border: 1px solid var(--line); border-radius: 12px; padding: 8px 4px 7px; cursor: pointer; display: grid; gap: 1px; min-height: 54px; }
+.hmode b { font-family: var(--display); font-size: 17px; line-height: 1.15; }
+.hmode small { font-family: var(--mono); font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+.hmode small .st { color: var(--accent); letter-spacing: 1px; }
+.hmode[aria-checked="true"] { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); background: var(--panel-2); }
+.hmode:hover { border-color: var(--muted); }
+.hmode[aria-checked="true"]:hover { border-color: var(--accent); }
+.home-blurb { margin: -4px 0 0; font-size: 13px; color: var(--muted); min-height: 1.5em; }
+.hstart { width: min(460px, 100%); min-height: 66px; border-radius: 16px; font-family: var(--display); font-weight: 800; font-size: 24px; letter-spacing: .01em;
+  display: flex; align-items: center; justify-content: center; gap: 12px; border: 2px solid #4a171c;
+  box-shadow: 0 5px 0 #8a5a12, 0 12px 26px rgba(240,180,76,.28); transition: transform .08s ease, box-shadow .08s ease, filter .15s; }
+.hstart::before { content: ""; width: 0; height: 0; border-style: solid; border-width: 10px 0 10px 16px; border-color: transparent transparent transparent var(--accent-ink); }
+.hstart:active { transform: translateY(4px); box-shadow: 0 1px 0 #8a5a12, 0 6px 14px rgba(240,180,76,.2); }
+.hmenu { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; width: min(460px, 100%); }
+@media (min-width: 760px) { .hmenu { grid-template-columns: repeat(4, minmax(0, 1fr)); width: min(720px, 100%); } }
+.hmenu .btn { min-height: 52px; display: grid; align-content: center; justify-items: center; gap: 0; text-decoration: none; line-height: 1.2; font-size: 14.5px;
+  background: color-mix(in srgb, var(--panel) 80%, transparent); padding: 7px 8px; }
+.hmenu .btn small { font-family: var(--mono); font-size: 10.5px; font-weight: 500; color: var(--muted); }
+.hmenu .btn.nudge { border-color: var(--accent); }
+.hmenu .btn.nudge small { color: var(--accent); }
+.home-foot { margin: 2px 0 0; font-size: 12px; color: var(--muted); max-width: 46ch; text-wrap: balance; }
+.home-foot span { font-family: var(--mono); font-size: 10.5px; opacity: .8; }
+.home a:focus-visible, .home button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .home-in > * { animation: hrise .5s cubic-bezier(.2,.8,.2,1) both; }
+  .home-in > :nth-child(2) { animation-delay: .04s; } .home-in > :nth-child(3) { animation-delay: .08s; } .home-in > :nth-child(4) { animation-delay: .12s; }
+  .home-in > :nth-child(5) { animation-delay: .16s; } .home-in > :nth-child(6) { animation-delay: .18s; } .home-in > :nth-child(7) { animation-delay: .2s; }
+  .home-in > :nth-child(8) { animation-delay: .24s; } .home-in > :nth-child(9) { animation-delay: .28s; }
+  @keyframes hrise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+  .hstart { animation: hrise .5s cubic-bezier(.2,.8,.2,1) .2s both, hglow 2.6s ease-in-out 1s infinite; }
+  @keyframes hglow { 0%, 100% { box-shadow: 0 5px 0 #8a5a12, 0 12px 26px rgba(240,180,76,.28); } 50% { box-shadow: 0 5px 0 #8a5a12, 0 12px 40px rgba(240,180,76,.5); } }
+  .hsheet .hs-in { animation: hrise .3s cubic-bezier(.2,.8,.2,1) both; }
+}
+@media (max-height: 700px) { .home-in { gap: 9px; } .hstart { min-height: 58px; font-size: 22px; } }
+@media (min-width: 760px) { .home-tag { max-width: none; } .logo { font-size: clamp(46px, min(12.5vw, 11vh), 92px); } }
+/* About and Privacy pages */
+.hsheet { width: 100%; }
+.hs-in { width: min(860px, 100%); margin: 0 auto; display: grid; gap: 12px;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) calc(28px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); }
+.hs-head { display: grid; grid-template-columns: auto 1fr; gap: 12px; align-items: center; }
+.hs-head h2 { font-family: var(--display); font-weight: 800; font-size: clamp(22px, 5vw, 32px); line-height: 1.1; margin: 0; }
+.hs-head .btn { min-height: 44px; }
+.hs-tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin-inline: -4px; padding: 4px; position: sticky; top: 0; z-index: 2;
+  background: linear-gradient(#2c1a20 70%, transparent); }
+.hs-tabs::-webkit-scrollbar { display: none; }
+.hs-tab { font: inherit; font-weight: 700; font-size: 14px; white-space: nowrap; color: var(--muted); background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 9px 16px; min-height: 42px; cursor: pointer; flex: none; }
+.hs-tab[aria-selected="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 10px; }
+.fcard { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px 16px 15px; text-align: left; display: grid; gap: 6px; align-content: start; }
+.fcard .ek { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+.fcard h3 { font-family: var(--display); font-size: 19px; line-height: 1.15; margin: 0; }
+.fcard p, .fcard ul { margin: 0; font-size: 14px; line-height: 1.5; color: #dccfcb; }
+.fcard ul { padding-left: 18px; display: grid; gap: 3px; }
+.fcard p.sm { font-size: 12.5px; color: var(--muted); }
+.fcard a { color: var(--accent); }
+.fcard.wide { grid-column: 1 / -1; }
+.fcard.hl { border-color: var(--accent); background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 9%, var(--panel)), var(--panel)); }
+.fcard .top { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 12px; align-items: center; }
+.fcard .top canvas { width: 64px; height: 64px; display: block; }
+.fcard .chips { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 3px; }
+.fcard .chips span { font-family: var(--mono); font-size: 10.5px; border: 1px solid var(--line); border-radius: 999px; padding: 1px 8px; color: var(--muted); white-space: nowrap; }
+.fcard .chips span.c { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
+.fcard .big { font-family: var(--display); font-weight: 800; font-size: 34px; line-height: 1; }
+.gbands { display: grid; gap: 4px; }
+.gband { display: grid; grid-template-columns: 44px 62px minmax(0, 1fr); gap: 8px; align-items: center; font-size: 13.5px; }
+.gband b { font-family: var(--mono); font-size: 12px; text-align: center; border-radius: 999px; padding: 1px 0; color: var(--accent-ink); }
+.gband span { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.hs-note { font-size: 13px; color: var(--muted); margin: 2px 2px; text-align: left; }
+.btn.danger { border-color: color-mix(in srgb, var(--bad) 60%, var(--line)); color: #f3b3aa; }
+/* end-of-run report and personal best */
+.report { width: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; display: grid; gap: 7px; text-align: left; }
+.report h3 { font-family: var(--display); font-size: 16px; margin: 0; }
+.rep-row { display: grid; grid-template-columns: 26px minmax(70px, auto) minmax(40px, 1fr) auto; gap: 8px; align-items: center; font-size: 13px; }
+.rep-ic canvas { width: 26px; height: 26px; display: block; }
+.rep-nm { font-weight: 700; }
+.rep-bar { height: 8px; background: var(--panel-2); border-radius: 999px; overflow: hidden; }
+.rep-bar i { display: block; height: 100%; background: var(--bad); border-radius: 999px; }
+.rep-n { font-family: var(--mono); font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.overlay .report .rep-tip { font-size: 13px; line-height: 1.45; color: #dccfcb; border-top: 1px solid var(--line); padding-top: 8px; }
+.rep-tip b { color: var(--fg); }
+.pbest { font-family: var(--mono); font-size: 12px; color: var(--muted); margin: 0; }
+.pbest.new { color: var(--accent-ink); background: var(--accent); border-radius: 999px; padding: 3px 12px; font-weight: 700; }
+.echips .none { font-family: var(--mono); font-size: 10.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--accent); }
+.home[hidden], .hsheet[hidden], .home-in[hidden], .hs-tabs[hidden] { display: none; }
 /* placed last so it overrides the base rules above */
 .mctrl #mpause[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
 .seg .pause[aria-pressed="true"] { background: var(--fg); color: var(--bg); border-color: var(--fg); }
@@ -298,7 +401,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
 <div class="app" id="app">
   <header>
     <div>
-      <h1>Renal <span>Tower</span> Defense <span class="vtag">2.2.1</span></h1>
+      <h1>Renal <span>Defense</span> <span class="vtag">2.3</span></h1>
       <p class="tag">Stop threats in the bloodstream before they reach the kidney.</p>
     </div>
     <div class="stats">
@@ -373,7 +476,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       <div class="card mob-hide">
         <p class="eyebrow">Enemies</p>
         <ul class="elist" id="elist"></ul>
-        <p class="note">Field: on the board now. Next: still to come this wave. Tap one for details.</p>
+        <p class="note">Field: on the board now. Next: still to come. Between waves, Next shows the coming wave. Tap one for details.</p>
       </div>
 
       <div class="card mob-hide" id="panel"></div>
@@ -381,6 +484,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     </aside>
   </div>
 </div>
+<div class="home" id="home" hidden></div>
 
 <script>
 (() => {
@@ -1504,19 +1608,19 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       coins: MODES[mode].coins, egfr: 100, stage: 1, waveInStage: 0, inWave: false, queue: [], mult: 1, spawnT: 0,
       enemies: [], towers: [], shots: [], rings: [], drops: [], time: 0, paused: false, over: false, started: false,
       build: null, sel: null, hover: null, seen: new Set(), fact: null, kills: {}, score: 0, autoT: -1,
-      banner: null, kHit: 0, kCheer: 0, kWorry: 0, kSay: null, leaked: 0, spentTotal: 0
+      banner: null, kHit: 0, kCheer: 0, kWorry: 0, kSay: null, leaked: 0, spentTotal: 0, leakBy: {}
     };
     SFX.setBoss(false);
-    ETYPES.forEach(t => S.kills[t] = 0);
+    ETYPES.forEach(t => { S.kills[t] = 0; S.leakBy[t] = 0; });
     MAP = genMap(TURNS[0]);
     panelKey = '';
     snapStage();
   }
   // what the player had when the current stage began, so the stage can be replayed from wave 1
-  function snapStage() { S.snap = { coins: S.coins, egfr: S.egfr, score: S.score, leaked: S.leaked, spentTotal: S.spentTotal, kills: { ...S.kills } }; }
+  function snapStage() { S.snap = { coins: S.coins, egfr: S.egfr, score: S.score, leaked: S.leaked, spentTotal: S.spentTotal, kills: { ...S.kills }, leakBy: { ...S.leakBy } }; }
   function restartStage() {
     const sn = S.snap;
-    Object.assign(S, { coins: sn.coins, egfr: sn.egfr, score: sn.score, leaked: sn.leaked, kills: { ...sn.kills },
+    Object.assign(S, { coins: sn.coins, egfr: sn.egfr, score: sn.score, leaked: sn.leaked, kills: { ...sn.kills }, leakBy: { ...sn.leakBy },
       towers: [], enemies: [], shots: [], rings: [], drops: [], queue: [], inWave: false, waveInStage: 0,
       sel: null, build: null, pending: null, paused: false, over: false, kHit: 0, kCheer: 0, kWorry: 0, kSay: null, spentTotal: sn.spentTotal, autoT: autoPref ? FIRST_GAP : -1 });
     S.banner = { title: `Stage ${S.stage} restarted`, sub: 'Back to wave 1 with the energy and kidney function you started the stage with', t: 2.6 };
@@ -1534,18 +1638,20 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       <div class="row" style="justify-content:center">
         <button class="btn primary" id="rs-stage" type="button">${later ? `Restart stage ${S.stage}` : 'Restart from wave 1'}</button>
         ${later ? '<button class="btn" id="rs-all" type="button">Start over from stage 1</button>' : ''}
+        <button class="btn" id="rs-home" type="button">Home menu</button>
         <button class="btn" id="rs-cancel" type="button">Cancel</button>
       </div>`;
     overlay.hidden = false;
     $('rs-stage').addEventListener('click', () => { overlay.hidden = true; restartStage(); });
     if (later) $('rs-all').addEventListener('click', () => beginGame());
+    $('rs-home').addEventListener('click', goHome);
     $('rs-cancel').addEventListener('click', () => { overlay.hidden = true; S.paused = wasPaused; });
     $('rs-stage').focus();
   }
 
   // ---------- DOM ----------
   const $ = id => document.getElementById(id);
-  const cv = $('cv'), ctx = cv.getContext('2d'), overlay = $('overlay'), ov = $('ov');
+  const cv = $('cv'), ctx = cv.getContext('2d'), mainCtx = ctx, overlay = $('overlay'), ov = $('ov');
   const dpr = Math.min(window.devicePixelRatio || 1, 2);
   // ROT: on phones and portrait tablets the 16×10 board is drawn rotated 90°, so blood flows from top to bottom.
   // The vertical board is switched off: every device plays the same horizontal map.
@@ -1666,7 +1772,8 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   $('restart').addEventListener('click', showRestart);
   $('mspeed').addEventListener('click', () => { speedPref = speedPref % 5 + 1; });
   $('mpause').addEventListener('click', () => pauseBtn.click());
-  const noChips = document.createElement('span'); noChips.className = 'none'; noChips.textContent = 'No enemies on the board';
+  const noChips = document.createElement('span'); noChips.className = 'none'; noChips.textContent = 'Next wave';
+  const pv = { key: '', n: {} };
   $('echips').prepend(noChips);
   const musicBtn = $('musicBtn'), sfxBtn = $('sfxBtn');
   const soundLabels = () => {
@@ -1700,32 +1807,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
 
   // ---------- Overlays ----------
   function setOv(html, wide) { ov.className = wide ? 'box wide' : 'box'; ov.innerHTML = html; overlay.classList.toggle('full', !S.started); overlay.hidden = false; overlay.scrollTop = 0; }
-  function showTitle() {
-    setOv(`
-      <p class="eyebrow">A kidney health game</p>
-      <h2>Renal <span>Tower</span> Defense</h2>
-      <p>Stop threats in the bloodstream before they reach the kidney.</p>
-      <div class="modes" role="radiogroup" aria-label="Difficulty">
-        ${Object.entries(MODES).map(([k, m]) => `<button type="button" class="mode" role="radio" data-mode="${k}" aria-checked="${k === mode}">
-          <b>${m.name}</b><span>${m.blurb}</span><small>${m.coins} starting energy</small></button>`).join('')}
-      </div>
-      <button class="btn primary" id="go" type="button">Start game</button>
-      <div class="row" style="justify-content:center">
-        <button class="btn" id="howto" type="button">How to play</button>
-        <button class="btn" id="tguide" type="button">Field guide</button>
-      </div>`);
-    ov.querySelectorAll('.mode').forEach(b => b.addEventListener('click', () => {
-      mode = b.dataset.mode;
-      try { localStorage.setItem('rtd-mode', mode); } catch (e) {}
-      ov.querySelectorAll('.mode').forEach(x => x.setAttribute('aria-checked', String(x === b)));
-      S.coins = MODES[mode].coins;
-      SFX.init(); SFX.play('place');
-    }));
-    $('go').addEventListener('click', () => beginGame());
-    $('howto').addEventListener('click', () => beginGame({ tutorial: true }));
-    $('tguide').addEventListener('click', () => showGuide());
-    $('go').focus();
-  }
+  function showTitle() { showHome(); }
 
   // ---------- Guided first game ----------
   // Runs on the first play (and from "How to play"): goal, build, start, watch, upgrade or sell.
@@ -1871,13 +1953,24 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     $('gclose').focus({ preventScroll: true });
   }
   function beginGame(opts = {}) {
+    hideHome();
     reset(); overlay.hidden = true; overlay.classList.remove('full'); S.started = true;
     SFX.init(); SFX.startMusic();
     TUT = null; $('coach').hidden = true; clearPulse();
-    if (opts.tutorial || !tutDone()) { startTutorial(); return; }
+    if (opts.tutorial) { startTutorial(); return; }
     S.banner = { title: 'Stage 1 of 5', sub: `${MODES[mode].name} · wave 1 of 25 · ${MAP.turns}-turn vessel`, t: 2.6 };
     if (autoPref) S.autoT = FIRST_GAP;
   }
+  const LIFE_TIP = {
+    salt: 'In real life, most salt hides in sauces, soups and processed food.',
+    sugar: 'In real life, sweet drinks are one of the easiest sources of sugar to cut.',
+    dehyd: 'In real life, drink to thirst, and more in hot weather or when you are unwell.',
+    pain: 'In real life, ask a doctor or pharmacist before taking painkillers such as ibuprofen often.',
+    smoke: 'In real life, quitting helps at any age, and support makes it more likely to stick.',
+    obese: 'In real life, regular activity and a balanced plate ease the load on the kidneys.',
+    hyp: 'In real life, high blood pressure usually has no symptoms, so measure it regularly.',
+    dia: 'In real life, yearly blood and urine checks catch kidney damage from diabetes early.'
+  };
   const STAGE_DESC = { G1: 'normal', G2: 'mildly decreased', G3a: 'mildly to moderately decreased', G3b: 'moderately to severely decreased', G4: 'severely decreased', G5: 'kidney failure' };
   function showScore(won) {
     if (TUT) endTutorial();
@@ -1889,6 +1982,17 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       : stars === 2 ? `Final eGFR ${g}: ${STAGE_DESC[st]} (G2). A strong result; the kidney took a little damage.`
       : `Final eGFR ${g}: ${STAGE_DESC[st]} (${st}). The kidney survived, but took real damage.`;
     const kidneyBonus = won ? g * 2 : 0, saveBonus = won ? Math.floor(S.coins / 10) : 0, total = S.score + kidneyBonus + saveBonus;
+    // personal best per difficulty, kept on this device
+    const pb = loadBest(), old = pb[mode] || { score: 0, stars: 0 }, isBest = total > (old.score || 0);
+    pb[mode] = { score: Math.max(total, old.score || 0), stars: Math.max(stars, old.stars || 0) };
+    saveBest(pb);
+    // run report: which threats cost the most kidney function, and one tip for the worst
+    const lost = ETYPES.map(k => [k, S.leakBy[k] || 0]).filter(([, v]) => v > 0).sort((x, y) => y[1] - x[1]);
+    const lostAll = lost.reduce((n, [, v]) => n + v, 0), pctOf = v => Math.round(v / lostAll * 100);
+    const report = !lostAll ? `<div class="report"><h3>What got through</h3><p class="rep-tip" style="border:0;padding:0"><b>Nothing reached the kidney.</b> A perfect defence.</p></div>`
+      : `<div class="report"><h3>What got through</h3>
+        ${lost.slice(0, 3).map(([k, v]) => `<div class="rep-row"><span class="rep-ic" data-e="${k}"></span><span class="rep-nm">${ENEMIES[k].name}</span><span class="rep-bar"><i style="width:${Math.max(4, pctOf(v))}%"></i></span><span class="rep-n">${pctOf(v)}% · −${v} eGFR</span></div>`).join('')}
+        <p class="rep-tip"><b>${ENEMIES[lost[0][0]].name} did ${pctOf(lost[0][1])}% of the damage.</b> In the game: ${BEATEN[lost[0][0]]} ${LIFE_TIP[lost[0][0]]}</p></div>`;
     const rows = ETYPES.map(k => {
       const d = ENEMIES[k], n = S.kills[k];
       return `<tr><td>${d.name}</td><td>${n}</td><td>${d.pts}</td><td>${n * d.pts}</td></tr>`;
@@ -1898,6 +2002,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       <h2>${won ? 'Kidney protected' : 'Kidney failure (G5)'}</h2>
       <div class="stars" role="img" aria-label="${stars} of 3 stars">${[0, 1, 2].map(i => `<span class="${i < stars ? 'on' : ''}">★</span>`).join('')}</div>
       <p>${verdict}</p>
+      ${report}
       <table class="score">
         <thead><tr><th>Threat</th><th>Stopped</th><th>Pts each</th><th>Points</th></tr></thead>
         <tbody>${rows}</tbody>
@@ -1908,14 +2013,16 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
           <tr><td>Total score</td><td></td><td></td><td>${total}</td></tr>
         </tfoot>
       </table>
+      <p class="pbest${isBest ? ' new' : ''}">${isBest ? `New personal best on ${MODES[mode].name}` : `Personal best on ${MODES[mode].name}: ${(old.score || 0).toLocaleString('en')}`}</p>
       <p class="note">${MODES[mode].name} mode · wave ${reached} of 25 · ${S.leaked} threat${S.leaked === 1 ? '' : 's'} reached the kidney · ${Math.max(0, S.spentTotal)} energy spent on towers</p>
       <p class="note">Stars: ★★★ eGFR 90 or more (G1, normal) · ★★ 60–89 (G2, mildly decreased) · ★ survived with less.</p>
       <div class="row" style="justify-content:center">
         <button class="btn primary" id="again" type="button">Play again (${MODES[mode].name})</button>
-        <button class="btn" id="change" type="button">Change difficulty</button>
+        <button class="btn" id="change" type="button">Home menu</button>
       </div>`);
+    ov.querySelectorAll('.rep-ic').forEach(el => { const k = el.dataset.e, d = ENEMIES[k]; el.appendChild(iconCanvas(26, g => { const sc = Math.min(1, 10 / d.r) * (k === 'smoke' || k === 'dia' ? 0.85 : 1); g.scale(sc, sc); enemyShape(g, k, d.r, 0.3, 0); })); });
     $('again').addEventListener('click', () => beginGame());
-    $('change').addEventListener('click', () => { reset(); showTitle(); });
+    $('change').addEventListener('click', goHome);
     $('again').focus();
   }
 
@@ -2082,7 +2189,7 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
       if (e.hurtT > 0) e.hurtT = Math.max(0, e.hurtT - dt);
       e.x = p.x; e.y = p.y;
       if (e.dist >= MAP.total) {
-        e.dead = true; S.leaked++;
+        e.dead = true; S.leaked++; S.leakBy[e.type] = (S.leakBy[e.type] || 0) + e.d.leak;
         S.egfr = Math.max(0, S.egfr - e.d.leak); S.kHit = 0.4; SFX.play('leak');
         if (S.egfr < 15) { end(false); return; }
       }
@@ -2216,8 +2323,8 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
   const SCARS = [-2.4, -1.9, -1.35, -0.8, -0.25, 0.3, 0.85, 1.4, 1.95, 2.45, -2.15, 2.2];
   // The kidney base, drawn in the mascot style: ink outline, glossy gradient and a face that reacts to the game.
   const PLASTERS = [[-0.27, -0.3, 0.5], [0.06, 0.36, -0.4], [-0.3, 0.27, -0.6], [0.33, 0.22, 0.6], [-0.04, -0.4, -0.3], [0.3, -0.36, 0.45]];
-  function drawKidney() {
-    const { x, y, w, h } = MAP.kid, t = S.time, g = S.egfr, K = '#4a171c';
+  function drawKidney(ctx = mainCtx, kid = MAP.kid, tt = S.time) {
+    const { x, y, w, h } = kid, t = tt, g = S.egfr, K = '#4a171c';
     const hit = S.kHit > 0 ? S.kHit / 0.4 : 0, cheer = S.kCheer > 0 ? S.kCheer / 0.9 : 0;
     const mood = S.over && g < 15 ? 'ko' : hit > 0.25 ? 'hit' : S.kWorry > 0 && g >= 30 ? 'worried' : cheer > 0 ? 'cheer' : g >= 60 ? 'happy' : g >= 30 ? 'worried' : 'sad';
     const tube = (draw, outer, inner, col) => { draw(); ctx.strokeStyle = K; ctx.lineWidth = outer; ctx.stroke(); draw(); ctx.strokeStyle = col; ctx.lineWidth = inner; ctx.stroke(); };
@@ -2663,20 +2770,29 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     ETYPES.forEach(k => { field[k] = 0; next[k] = 0; });
     for (const e of S.enemies) field[e.type]++;
     for (const q of S.queue) next[q.type]++;
+    // between waves, show what the next wave will bring so the player can plan
+    const preview = S.started && !S.over && !S.inWave && waveNo() <= TOTAL_WAVES;
+    if (preview) {
+      const key = waveNo() + mode;
+      if (pv.key !== key) { pv.key = key; pv.n = {}; for (const q of buildWave(waveNo(), S.stage, S.waveInStage + 1).q) pv.n[q.type] = (pv.n[q.type] || 0) + 1; }
+      for (const k of ETYPES) next[k] = pv.n[k] || 0;
+    }
     for (const k of ETYPES) {
-      const r = erows[k], sig = field[k] + '/' + next[k];
+      const r = erows[k], sig = field[k] + '/' + next[k] + (preview ? 'p' : '');
       if (r.last === sig) continue;
       r.last = sig;
-      r.field.textContent = field[k]; r.next.textContent = 'next ' + next[k];
-      r.chip.hidden = !field[k] && !next[k]; r.cc.textContent = next[k] ? `${field[k]} +${next[k]}` : String(field[k]);
-      r.chip.style.opacity = field[k] ? '1' : '.55';
+      r.field.textContent = field[k]; r.next.textContent = (preview ? 'next wave ' : 'next ') + next[k];
+      r.chip.hidden = !field[k] && !next[k]; r.cc.textContent = preview ? `×${next[k]}` : next[k] ? `${field[k]} +${next[k]}` : String(field[k]);
+      r.chip.setAttribute('aria-label', `${ENEMIES[k].name}: ${preview ? `${next[k]} in the next wave` : `${field[k]} on the board, ${next[k]} to come`}`);
+      r.chip.style.opacity = field[k] || preview ? '1' : '.55';
       r.row.classList.toggle('idle', !field[k] && !next[k]);
       r.row.classList.toggle('live', field[k] > 0);
     }
     renderPanel();
     renderPop();
     const anyChip = ETYPES.some(k => !erows[k].chip.hidden);
-    if (last.noChips !== anyChip) { last.noChips = anyChip; noChips.hidden = true; $('echips').hidden = !anyChip; }
+    const chipSig = anyChip + '/' + preview;
+    if (last.noChips !== chipSig) { last.noChips = chipSig; noChips.hidden = !(preview && anyChip); $('echips').hidden = !anyChip; }
     // 2. short labels so the phone's Start button never wraps; while paused it is the one way to resume
     const ms = $('mstart'), ml = !S.started ? 'Start' : S.over ? 'Game over' : S.paused ? 'Resume' : S.inWave ? `Wave ${S.waveInStage + 1}/5` :
       S.autoT >= 0 ? `Start now · ${Math.ceil(S.autoT)}` : `Start wave ${S.waveInStage + 1}`;
@@ -2686,17 +2802,309 @@ table.score tfoot td { font-weight: 700; font-size: 16px; border-bottom: none; c
     const mp = $('mpause'); mp.setAttribute('aria-pressed', String(!!S.paused)); mp.setAttribute('aria-label', S.paused ? 'Paused' : 'Pause');
   }
 
+  // ---------- Home menu, About and Privacy (2.3) ----------
+  const BEST_KEY = 'rtd-best', SAVE_KEYS = ['rtd-auto', 'rtd-boss-seen', 'rtd-mode', 'rtd-sound', 'rtd-tut', 'rtd-best'];
+  function loadBest() { try { const b = JSON.parse(localStorage.getItem(BEST_KEY) || '{}'); return b && typeof b === 'object' ? b : {}; } catch (e) { return {}; } }
+  function saveBest(b) { try { localStorage.setItem(BEST_KEY, JSON.stringify(b)); } catch (e) {} }
+  const starStr = n => '★'.repeat(n) + '☆'.repeat(3 - n);
+  const home = $('home'), HW = 720, HH = 380, IG = 'https://www.instagram.com/dialysisandbeyond/';
+  const HOME = { open: false, t: 0, foes: [], pops: [], beams: [], spawnT: 0.6, side: 0, n: 0, kills: 0, lastFocus: null };
+  // the seven defenders stand guard around the kidney: back row first, then the front row
+  const CAST = [['ex', 112, 296, 0.7, -1], ['quit', 232, 286, 0.74, -1], ['screen', 488, 286, 0.74, 1], ['med', 606, 296, 0.7, 1],
+    ['flush', 172, 358, 0.9, -1], ['reg', 548, 358, 0.9, 1], ['diet', 360, 368, 0.94, 1]]
+    .map(([k, x, y, s, dir]) => ({ k, x, y, s, dir, st: Mascot.newState(), cfg: Mascot.CFG[MK[k]], target: null }));
+  home.innerHTML = `
+    <div class="home-in" id="home-main">
+      <p class="eyebrow">A kidney health game</p>
+      <h1 class="logo">Renal <span>Defense</span></h1>
+      <p class="home-tag">Stop threats in the bloodstream before they reach the kidney.</p>
+      <canvas class="hero" id="hero" role="img" aria-label="The seven defenders standing guard around a smiling kidney"></canvas>
+      <div class="hmodes" id="hmodes" role="radiogroup" aria-label="Difficulty"></div>
+      <p class="home-blurb" id="hblurb"></p>
+      <button class="btn primary hstart" id="go" type="button">Start game</button>
+      <nav class="hmenu" aria-label="Menu">
+        <button class="btn" id="howto" type="button">Tutorial<small id="howto-new"></small></button>
+        <button class="btn" id="h-about" type="button">About Renal Defense<small>Team · threats · kidney</small></button>
+        <button class="btn" id="h-privacy" type="button">Privacy policy<small>No data collected</small></button>
+        <a class="btn" id="h-ig" href="${IG}" target="_blank" rel="noopener">Instagram ↗<small>@dialysisandbeyond</small></a>
+      </nav>
+      <p class="home-foot">An educational game, not medical advice. Ask your doctor about your own health.<br><span>Version 2.3</span></p>
+    </div>
+    <div class="hsheet" id="hsheet" hidden role="dialog" aria-modal="true" aria-labelledby="hs-title">
+      <div class="hs-in">
+        <div class="hs-head"><button class="btn" id="hs-back" type="button">← Back</button><h2 id="hs-title"></h2></div>
+        <div class="hs-tabs" id="hs-tabs" role="tablist" hidden></div>
+        <div id="hs-body" role="tabpanel"></div>
+      </div>
+    </div>`;
+  const hero = $('hero'), hg = hero.getContext('2d');
+
+  function renderModes() {
+    const best = loadBest(), box = $('hmodes');
+    box.innerHTML = Object.entries(MODES).map(([k, m]) => {
+      const b = best[k], has = b && b.score > 0;
+      return `<button type="button" class="hmode" role="radio" data-mode="${k}" aria-checked="${k === mode}" tabindex="${k === mode ? 0 : -1}"
+        aria-label="${m.name}. ${has ? `Best score ${b.score}, ${b.stars || 0} of 3 stars` : 'No best score yet'}"><b>${m.name}</b>
+        <small>${has ? `<span class="st">${starStr(b.stars || 0)}</span> ${b.score.toLocaleString('en')}` : 'No best yet'}</small></button>`;
+    }).join('');
+    $('hblurb').textContent = `${MODES[mode].blurb} ${MODES[mode].coins} starting energy.`;
+    const pick = (k, sound) => {
+      mode = k; try { localStorage.setItem('rtd-mode', mode); } catch (e) {}
+      S.coins = MODES[mode].coins;
+      if (sound) { SFX.init(); SFX.play('place'); }
+      renderModes(); box.querySelector(`[data-mode="${k}"]`).focus({ preventScroll: true });
+    };
+    box.querySelectorAll('.hmode').forEach(b => {
+      b.addEventListener('click', () => pick(b.dataset.mode, true));
+      b.addEventListener('keydown', e => {
+        const keys = Object.keys(MODES), i = keys.indexOf(b.dataset.mode);
+        if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); pick(keys[(i + 1) % keys.length], true); }
+        else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') { e.preventDefault(); pick(keys[(i + keys.length - 1) % keys.length], true); }
+      });
+    });
+  }
+  function showHome() {
+    overlay.hidden = true; HOME.open = true; home.hidden = false; document.body.classList.add('at-home');
+    $('hsheet').hidden = true; $('home-main').hidden = false; home.scrollTop = 0;
+    renderModes();
+    const fresh = !tutDone();
+    $('howto').classList.toggle('nudge', fresh); $('howto-new').textContent = fresh ? 'New? Start here' : 'Learn in 5 steps';
+    SFX.stopMusic();
+    $('go').focus({ preventScroll: true });
+  }
+  function hideHome() { HOME.open = false; home.hidden = true; document.body.classList.remove('at-home'); }
+  function goHome() { TUT = null; $('coach').hidden = true; clearPulse(); reset(); showHome(); }
+
+  // The hero scene: threats drift in along the vessel from both sides and the defenders stop them.
+  const FOE_TYPES = ['salt', 'sugar', 'pain', 'salt', 'dehyd', 'sugar', 'smoke'];
+  function drawHome(dt) {
+    const cw = hero.clientWidth; if (!cw) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2), bw = Math.round(cw * dpr), bh = Math.round(cw * HH / HW * dpr);
+    if (hero.width !== bw || hero.height !== bh) { hero.width = bw; hero.height = bh; }
+    const g = hg, sc = bw / HW, VY = 168;
+    g.setTransform(sc, 0, 0, sc, 0, 0); g.clearRect(0, 0, HW, HH);
+    HOME.t += dt; const t = HOME.t;
+    S.kCheer = Math.max(0, S.kCheer - dt);
+    // vessel
+    g.lineJoin = 'round'; g.lineCap = 'butt';
+    for (const [col, lw] of [[P.wall, 56], [P.lumenEdge, 44], [P.lumen, 38]]) { g.strokeStyle = col; g.lineWidth = lw; g.beginPath(); g.moveTo(-10, VY); g.lineTo(HW + 10, VY); g.stroke(); }
+    g.strokeStyle = 'rgba(255,255,255,0.16)'; g.lineWidth = 3; g.lineCap = 'round';
+    for (let i = 0; i < 7; i++) {
+      const o = (i * 44 + (REDUCE_MOTION ? 0 : t * 22)) % 308;
+      for (const dir of [1, -1]) { const x = dir > 0 ? o : HW - o; g.beginPath(); g.moveTo(x - 5 * dir, VY - 7); g.lineTo(x + 3 * dir, VY); g.lineTo(x - 5 * dir, VY + 7); g.stroke(); }
+    }
+    // threats
+    if (REDUCE_MOTION) { if (!HOME.foes.length) HOME.foes = [{ k: 'salt', side: 0, x: 70, ph: 0 }, { k: 'sugar', side: 1, x: HW - 70, ph: 2 }]; }
+    else {
+      HOME.spawnT -= dt;
+      if (HOME.spawnT <= 0) {
+        HOME.spawnT = 1.5 + Math.random() * 1.3; HOME.side = 1 - HOME.side;
+        HOME.foes.push({ k: FOE_TYPES[HOME.n++ % FOE_TYPES.length], side: HOME.side, x: HOME.side ? HW + 24 : -24, ph: Math.random() * 6, aimed: false, hitT: 0, by: null });
+      }
+      for (const f of HOME.foes) {
+        f.x += (f.side ? -1 : 1) * 36 * dt;
+        if (!f.aimed && Math.abs(f.x - HW / 2) < 262) {
+          f.aimed = true;
+          const free = CAST.filter(c => (c.x > HW / 2) === !!f.side && c.k !== 'screen' && c.st.fireT < 0 && c.st.celT < 0);
+          const c = free[Math.floor(Math.random() * free.length)];
+          if (c) { c.st.fireT = 0; c.target = f; f.by = c; f.hitT = c.cfg.wind + 0.1; } else f.hitT = 0.35;
+        }
+        if (f.aimed && (f.hitT -= dt) <= 0) {
+          f.dead = true;
+          const col = f.by ? TOWERS[f.by.k].color : '#f3e9e5';
+          HOME.pops.push({ x: f.x, y: VY, t: 0, col });
+          if (f.by) { HOME.beams.push({ x1: f.by.x + f.by.dir * 26 * f.by.s, y1: f.by.y - 46 * f.by.s, x2: f.x, y2: VY, t: 0, col }); f.by.target = null; }
+          if (++HOME.kills % 5 === 0) S.kCheer = 0.9;
+        }
+      }
+      HOME.foes = HOME.foes.filter(f => !f.dead);
+    }
+    for (const f of HOME.foes) {
+      const d = ENEMIES[f.k];
+      g.save(); g.translate(f.x, VY + (REDUCE_MOTION ? 0 : Math.sin(t * 5 + f.ph) * 2)); g.scale(1.2, 1.2);
+      enemyShape(g, f.k, d.r, f.ph, t, { lx: f.side ? -1 : 1, ly: 0, ph: f.ph, hurtT: 0 });
+      g.restore();
+    }
+    // kidney
+    g.save(); g.translate(HW / 2, 140); g.scale(0.92, 0.92); drawKidney(g, { x: 0, y: 0, w: 150, h: 236 }, t); g.restore();
+    // ground shadow, then the defenders
+    g.fillStyle = 'rgba(0,0,0,0.22)'; g.beginPath(); g.ellipse(HW / 2, 362, 310, 17, 0, 0, Math.PI * 2); g.fill();
+    for (const c of CAST) {
+      Mascot.tick(c.st, c.cfg, dt);
+      const tg = c.target && !c.target.dead ? c.target : null;
+      const want = tg ? Math.max(-1.2, Math.min(0.9, Math.atan2(VY - (c.y - 46 * c.s), Math.abs(tg.x - c.x)) + (c.cfg.aimBias || 0))) : -0.12 + Math.sin(t * 0.8 + c.x) * 0.08;
+      c.st.aim += (want - c.st.aim) * Math.min(1, dt * 8);
+      c.st.look = tg ? { x: 0.8, y: -0.5 } : { x: Math.cos(t * 0.5 + c.x) * 0.6, y: -0.1 };
+      c.st.p = Mascot.pose(c.st, c.cfg, t);
+      Mascot.setLevel(3);
+      g.save();
+      if (c.dir < 0) { g.translate(c.x, 0); g.scale(-1, 1); g.translate(-c.x, 0); }
+      Mascot.drawRig(g, c.x, c.y, c.s, c.st, c.cfg, t, true);
+      g.restore();
+    }
+    Mascot.setLevel(1);
+    // shots landing
+    g.lineCap = 'round';
+    for (const b of HOME.beams) { b.t += dt; const a = 1 - b.t / 0.16; if (a > 0) { g.globalAlpha = a; g.strokeStyle = b.col; g.lineWidth = 3; g.beginPath(); g.moveTo(b.x1, b.y1); g.lineTo(b.x2, b.y2); g.stroke(); } }
+    for (const p of HOME.pops) {
+      p.t += dt; const q = p.t / 0.45; if (q >= 1) continue;
+      g.globalAlpha = 1 - q; g.strokeStyle = p.col; g.lineWidth = 4 * (1 - q) + 1;
+      g.beginPath(); g.arc(p.x, p.y, 8 + 22 * q, 0, Math.PI * 2); g.stroke();
+      g.fillStyle = '#fff';
+      for (let i = 0; i < 6; i++) { const a = i * 1.047 + p.x; g.beginPath(); g.arc(p.x + Math.cos(a) * (10 + 26 * q), p.y + Math.sin(a) * (10 + 26 * q), 2.2 * (1 - q), 0, Math.PI * 2); g.fill(); }
+    }
+    g.globalAlpha = 1;
+    HOME.beams = HOME.beams.filter(b => b.t < 0.16); HOME.pops = HOME.pops.filter(p => p.t < 0.45);
+    // soft fade at both edges, so threats drift in from off-screen
+    g.globalCompositeOperation = 'destination-out';
+    for (const [x0, x1] of [[0, 84], [HW, HW - 84]]) {
+      const gr = g.createLinearGradient(x0, 0, x1, 0); gr.addColorStop(0, 'rgba(0,0,0,1)'); gr.addColorStop(1, 'rgba(0,0,0,0)');
+      g.fillStyle = gr; g.fillRect(Math.min(x0, x1), 0, 84, HH);
+    }
+    g.globalCompositeOperation = 'source-over';
+  }
+  // tap a defender for a little hop, or the kidney for a cheer
+  hero.addEventListener('pointerdown', e => {
+    const r = hero.getBoundingClientRect(), x = (e.clientX - r.left) * HW / r.width, y = (e.clientY - r.top) * HH / r.height;
+    let hit = null;
+    for (const c of CAST) if (Math.abs(x - c.x) < 48 * c.s && y > c.y - 125 * c.s && y < c.y + 8) hit = c;
+    SFX.init();
+    if (hit) { hit.st.pend = true; SFX.play('place'); }
+    else if (Math.abs(x - HW / 2) < 72 && y < 250) { S.kCheer = 0.9; SFX.play('upgrade'); }
+  });
+
+  // ----- About and Privacy pages -----
+  const ABOUT_TABS = [['director', 'Game Director'], ['towers', 'Towers'], ['threats', 'Threats'], ['kidney', 'Kidney']];
+  function openSheet(title, tabs, render) {
+    HOME.lastFocus = document.activeElement;
+    $('home-main').hidden = true; $('hsheet').hidden = false; $('hs-title').textContent = title;
+    const tb = $('hs-tabs'), body = $('hs-body');
+    const show = key => {
+      tb.querySelectorAll('.hs-tab').forEach(b => { const on = b.dataset.k === key; b.setAttribute('aria-selected', String(on)); b.tabIndex = on ? 0 : -1; });
+      body.innerHTML = ''; render(key, body); home.scrollTop = 0;
+    };
+    tb.hidden = !tabs; tb.innerHTML = '';
+    if (tabs) {
+      tb.innerHTML = tabs.map(([k, n]) => `<button type="button" class="hs-tab" role="tab" data-k="${k}" aria-selected="false">${n}</button>`).join('');
+      tb.querySelectorAll('.hs-tab').forEach((b, i, all) => {
+        b.addEventListener('click', () => { SFX.play('place'); show(b.dataset.k); });
+        b.addEventListener('keydown', e => {
+          const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0; if (!d) return;
+          e.preventDefault(); const n = all[(i + d + all.length) % all.length]; n.focus(); show(n.dataset.k);
+        });
+      });
+    }
+    show(tabs ? tabs[0][0] : null);
+    $('hs-back').focus({ preventScroll: true });
+  }
+  function closeSheet() {
+    if ($('hsheet').hidden) return;
+    $('hsheet').hidden = true; $('home-main').hidden = false; home.scrollTop = 0;
+    if (HOME.lastFocus && HOME.lastFocus.focus) HOME.lastFocus.focus({ preventScroll: true });
+  }
+  const NOT_ADVICE = 'Renal Defense is an educational game and is not medical advice. It cannot diagnose, monitor or treat any condition. If you have questions about your own health, talk to your doctor.';
+  const GBANDS = [['G1', '90 +', 'Normal', 'var(--good)'], ['G2', '60–89', 'Mildly decreased', 'var(--good)'], ['G3a', '45–59', 'Mildly to moderately decreased', 'var(--warn)'],
+    ['G3b', '30–44', 'Moderately to severely decreased', 'var(--orange)'], ['G4', '15–29', 'Severely decreased', 'var(--bad)'], ['G5', 'Under 15', 'Kidney failure', 'var(--bad)']];
+  function renderAbout(key, body) {
+    if (key === 'director') {
+      body.innerHTML = `<div class="cards">
+        <div class="fcard hl"><span class="ek">Game Director</span><div class="big">Nat</div>
+          <p>Concept, design and direction. Follow the project and send feedback on Instagram: <a href="${IG}" target="_blank" rel="noopener">@dialysisandbeyond</a>.</p></div>
+        <div class="fcard"><span class="ek">Why this game</span><h3>Protect the kidney, one habit at a time</h3>
+          <p>Kidney disease is often silent until much of the kidney’s function is gone. Renal Defense turns the everyday habits that protect kidneys into a team of defenders, so the lessons stay with you after you play.</p></div>
+        <div class="fcard"><span class="ek">How it was made</span><h3>Directed by a person, built with AI</h3>
+          <p>The code, character art, animation, sound and music were created with Claude, an AI assistant made by Anthropic, under Nat’s direction. Everything is drawn and played by code in your browser.</p></div>
+        <div class="fcard"><span class="ek">Health content</span><h3>Where the facts come from</h3>
+          <p>Health facts follow published guidance: the KDIGO 2024 chronic kidney disease guideline for eGFR stages, the World Health Organization for salt and activity, and the National Kidney Foundation Singapore for local figures.</p></div>
+        <div class="fcard"><span class="ek">Credits</span><h3>Fonts</h3>
+          <p>Bricolage Grotesque, Atkinson Hyperlegible and JetBrains Mono, used under their open font licences.</p><p class="sm">Renal Defense · version 2.3</p></div>
+        <div class="fcard hl"><span class="ek">Important</span><h3>Not medical advice</h3><p>${NOT_ADVICE}</p></div>
+      </div>`;
+    } else if (key === 'towers') {
+      body.innerHTML = `<p class="hs-note">Seven defenders, one for each habit that protects the kidneys. Place them beside the vessel; each can be upgraded twice.</p><div class="cards">${ORDER.map(k => { const d = TOWERS[k];
+        return `<div class="fcard"><div class="top"><span data-t="${k}"></span><div><h3>${d.name}</h3>
+          <div class="chips"><span class="c">${d.cost} energy</span><span>${d.unlock ? `Unlocks at stage ${d.unlock}` : 'From the start'}</span></div></div></div>
+          <p><b>${d.role}.</b> Best against: ${BEST[k]}</p><p class="sm">${d.fact}</p></div>`; }).join('')}</div>`;
+      body.querySelectorAll('[data-t]').forEach(el => { const k = el.dataset.t; el.appendChild(iconCanvas(64, g => {
+        g.fillStyle = '#1d1517'; g.strokeStyle = TOWERS[k].color; g.lineWidth = 2.5; g.beginPath(); g.roundRect(-30, -30, 60, 60, 13); g.fill(); g.stroke();
+        Mascot.setLevel(1); Mascot.drawRig(g, 0, 23, 0.4, Mascot.newState(), Mascot.CFG[MK[k]], 0, true); })); });
+    } else if (key === 'threats') {
+      body.innerHTML = `<p class="hs-note">Eight threats travel the bloodstream toward the kidney. Each one that gets through lowers kidney function (eGFR).</p><div class="cards">${ETYPES.map(k => { const d = ENEMIES[k];
+        return `<div class="fcard"><div class="top"><span data-e="${k}"></span><div><h3>${d.name}</h3>
+          <div class="chips"><span class="c">−${d.leak} eGFR if it gets through</span><span>${d.short}</span></div></div></div>
+          <p><b>How to stop it.</b> ${BEATEN[k]}</p><p class="sm">${d.fact}</p></div>`; }).join('')}</div>`;
+      body.querySelectorAll('[data-e]').forEach(el => { const k = el.dataset.e, d = ENEMIES[k]; el.appendChild(iconCanvas(64, g => {
+        g.fillStyle = '#1d1517'; g.strokeStyle = '#3d2e33'; g.lineWidth = 2; g.beginPath(); g.roundRect(-30, -30, 60, 60, 13); g.fill(); g.stroke();
+        const sc = Math.min(2.1, 20 / d.r) * (k === 'smoke' || k === 'dia' ? 0.8 : 1); g.translate(0, k === 'dia' ? 5 : 2); g.scale(sc, sc); enemyShape(g, k, d.r, 0.3, 0); })); });
+    } else {
+      body.innerHTML = `<p class="hs-note">Kidney health in ten cards.</p><div class="cards">
+        <div class="fcard"><span class="ek">The basics</span><h3>What your kidneys do</h3>
+          <p>You have two kidneys, each about the size of a fist. Together they filter about 180 litres of fluid from your blood every day, remove waste as urine, and balance water, salts and acids. They also make hormones that help control blood pressure, build red blood cells and keep bones strong.</p></div>
+        <div class="fcard"><span class="ek">The number that matters</span><h3>What is GFR?</h3>
+          <p>GFR stands for glomerular filtration rate. It is how much blood the kidneys’ tiny filters, the glomeruli, clean each minute, and it is the best overall measure of kidney function. A healthy young adult’s GFR is roughly 90 to 120, and it falls slowly with age.</p></div>
+        <div class="fcard"><span class="ek">On your lab report</span><h3>What is eGFR?</h3>
+          <p>Measuring GFR directly is slow, so it is estimated. eGFR is calculated from a blood test for creatinine, a waste product made by muscles, together with your age and sex. It is the number on a lab report, and the number on the health bar in this game.</p></div>
+        <div class="fcard"><span class="ek">Reading the number</span><h3>The stages, G1 to G5</h3>
+          <div class="gbands">${GBANDS.map(([s2, r, n, c]) => `<div class="gband"><b style="background:${c}">${s2}</b><span>${r}</span>${n}</div>`).join('')}</div>
+          <p class="sm">G1 and G2 count as kidney disease only when there are other signs of damage, such as protein in the urine, lasting three months or more.</p></div>
+        <div class="fcard"><span class="ek">Why testing matters</span><h3>A silent disease</h3>
+          <p>Early kidney disease usually causes no symptoms. Many people feel well until much of their kidney function is lost, so a test is the only way to know.</p></div>
+        <div class="fcard"><span class="ek">Getting checked</span><h3>Two simple tests</h3>
+          <p>A blood test gives your eGFR. A urine test, the albumin-to-creatinine ratio or ACR, shows whether protein is leaking through the filters, which is an early sign of damage. If you have diabetes, high blood pressure or kidney disease in the family, ask about being tested every year.</p></div>
+        <div class="fcard"><span class="ek">Know the risks</span><h3>The two biggest causes</h3>
+          <p>Diabetes and high blood pressure cause most kidney failure. In Singapore, diabetes is behind about 2 in 3 new cases. Keeping blood sugar and blood pressure in range is the strongest protection there is.</p></div>
+        <div class="fcard"><span class="ek">What you can do</span><h3>Everyday protection</h3>
+          <ul><li>Eat less salt: under about 5 g a day, roughly one teaspoon.</li><li>Drink water to thirst, and more in hot weather. If your doctor has set a fluid limit, follow that.</li><li>Be active for at least 150 minutes a week.</li><li>Don’t smoke.</li><li>Take care with painkillers such as ibuprofen.</li><li>Take prescribed medicines as directed.</li></ul></div>
+        <div class="fcard"><span class="ek">If kidneys fail</span><h3>Life goes on with treatment</h3>
+          <p>At G5 the kidneys can no longer keep up. Dialysis or a kidney transplant takes over their work, and people go on living with treatment. Lost kidney function usually does not come back, so the aim is to find problems early and slow the decline.</p></div>
+        <div class="fcard hl"><span class="ek">In this game</span><h3>eGFR is a score here</h3>
+          <p>The eGFR bar in the game is a score, not a medical reading. ${NOT_ADVICE}</p></div>
+      </div><p class="hs-note">Sources: KDIGO 2024 Clinical Practice Guideline for Chronic Kidney Disease; World Health Organization; National Kidney Foundation Singapore.</p>`;
+    }
+  }
+  function renderPrivacy(key, body) {
+    body.innerHTML = `<div class="cards">
+      <div class="fcard hl wide"><span class="ek">In short</span><h3>Renal Defense does not collect your data</h3>
+        <p>The game does not ask for, collect or store any personal information. There are no accounts, no sign-in, no advertising, and no analytics or tracking code in the game.</p></div>
+      <div class="fcard"><span class="ek">On your device</span><h3>What the game saves</h3>
+        <p>To remember your choices, the game keeps a few items in your browser’s storage on this device: difficulty, sound and auto-start settings, whether you have done the tutorial, which bosses you have met, and your best scores. This never leaves your device and is not sent to us.</p>
+        <p><button class="btn danger" id="pv-clear" type="button">Clear saved data</button></p><p class="sm" id="pv-msg" role="status"></p></div>
+      <div class="fcard"><span class="ek">Hosting</span><h3>Vercel</h3>
+        <p>The game is hosted by Vercel. Like any web host, Vercel may process technical information such as your IP address, browser type and the time of your visit in order to deliver the site and keep it secure. See <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">Vercel’s privacy policy</a>.</p></div>
+      <div class="fcard"><span class="ek">Fonts</span><h3>Google Fonts</h3>
+        <p>The game’s typefaces load from Google Fonts, so Google receives your IP address when the page loads. See <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google’s privacy policy</a>.</p></div>
+      <div class="fcard"><span class="ek">Links</span><h3>Instagram</h3>
+        <p>The Instagram link opens Instagram in a new tab. Instagram has its own privacy policy, and the game shares nothing with it.</p></div>
+      <div class="fcard"><span class="ek">Questions</span><h3>Contact</h3>
+        <p>Message <a href="${IG}" target="_blank" rel="noopener">@dialysisandbeyond</a> on Instagram.</p><p class="sm">Last updated 16 November 2026 · version 2.3</p></div>
+    </div>`;
+    let armed = false;
+    $('pv-clear').addEventListener('click', e => {
+      if (!armed) { armed = true; e.target.textContent = 'Tap again to confirm'; $('pv-msg').textContent = 'This resets your settings, tutorial progress and best scores on this device.'; return; }
+      try { SAVE_KEYS.forEach(k => localStorage.removeItem(k)); } catch (err) {}
+      armed = false; e.target.textContent = 'Clear saved data'; $('pv-msg').textContent = 'Saved data cleared on this device.';
+    });
+  }
+  $('go').addEventListener('click', () => beginGame());
+  $('howto').addEventListener('click', () => beginGame({ tutorial: true }));
+  $('h-about').addEventListener('click', () => { SFX.play('place'); openSheet('About Renal Defense', ABOUT_TABS, renderAbout); });
+  $('h-privacy').addEventListener('click', () => { SFX.play('place'); openSheet('Privacy policy', null, renderPrivacy); });
+  $('hs-back').addEventListener('click', () => { SFX.play('sell'); closeSheet(); });
+  window.addEventListener('keydown', e => { if (HOME.open && e.key === 'Escape') closeSheet(); });
+
+
   // ---------- Loop ----------
   let prev = performance.now();
   function frame(now) {
     const dt = Math.min(0.05, (now - prev) / 1000); prev = now;
     if (S.started && !S.paused && !S.over) for (let i = 0; i < speedPref && !S.over; i++) step(dt);
+    if (HOME.open) { drawHome(dt); requestAnimationFrame(frame); return; }
     tutTick(dt);
     draw(); refreshUI();
     requestAnimationFrame(frame);
   }
   reset();
-  showTitle();
+  showHome();
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { last.g = undefined; }).catch(() => {});
   requestAnimationFrame(frame);
 })();
