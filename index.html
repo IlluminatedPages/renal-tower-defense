@@ -3282,7 +3282,7 @@ body.at-home { overflow: hidden; }
             <div class="tc-pills"><span class="tc-pill harm">${IC.drop}−${d.leak} eGFR if it gets through</span><span class="tc-pill cost">${IC.bolt}+${d.reward} energy</span></div></div></div>
           <div class="tc-fx">${IC.warn}<span>${d.short}</span></div>
           <div class="tc-box tc-best">${IC.target}<p><b>How to stop it:</b> ${BEATEN[k]}</p></div>
-          <div class="tc-box tc-how"><h4>${IC.info}Health fact</h4><p>${d.fact}</p></div>
+          <div class="tc-box tc-how"><h4>${IC.info}In real life</h4><p>${d.fact}</p></div>
         </article>`; }).join('')}</div>`;
       body.querySelectorAll('[data-e]').forEach(el => { const k = el.dataset.e, d = ENEMIES[k]; el.appendChild(iconCanvas(72, g => {
         const sc = Math.min(2.4, 23 / d.r) * (k === 'smoke' || k === 'dia' ? 0.8 : 1); g.translate(0, k === 'dia' ? 5 : 2); g.scale(sc, sc); enemyShape(g, k, d.r, 0.3, 0); })); });
