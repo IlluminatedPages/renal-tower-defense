@@ -1,5 +1,7 @@
 # Renal Defense
 
+> **Version 2.4** rewrites the About and Kidney text, redesigns the tower and threat cards, and adds the full Privacy Policy v1.1 as a downloadable PDF (`renal-defense-privacy-policy-v1.1.pdf`).
+>
 > **Version 2.3** adds a home menu with the animated defenders, an About section (game director, towers, threats and kidney health cards), a privacy policy, an end-of-run report showing which threats got through, personal bests per difficulty, and a preview of the next wave. The game was renamed from Renal Tower Defense to Renal Defense.
 >
 > **Version 2.0.** Towers are animated kidney-bean mascots that each take a 2×2 block, the kidney base reacts to its health, Hydration fires as a mortar, towers can be dragged onto the board or tapped into place, mascots share kidney facts when tapped, and a Restart button replays a stage. Version 2.1 adds a guided first game, a field guide, clearer building spots, star ratings with bonuses for kidney function and saved energy, auto-start by default with a countdown, and a balance pass. Earlier versions are tagged v1.0.0 and v1.1.0.
