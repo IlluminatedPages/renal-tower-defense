@@ -376,7 +376,23 @@ body.at-home { overflow: hidden; }
 .tc-how h4 svg { width: 18px; height: 18px; flex: none; }
 .tcard.threat .tc-how h4 { color: #f3b3aa; }
 @media (max-width: 380px) { .tc-head { grid-template-columns: 64px minmax(0, 1fr); } .tc-ic { width: 64px; height: 64px; } .tc-ic canvas { width: 60px; height: 60px; } .tcard h3 { font-size: 20px; } }
-.pv-pdf { margin-top: 2px; }
+.pol { width: min(760px, 100%); margin: 0 auto; display: grid; gap: 10px; text-align: left; }
+.pol-head { background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 9%, var(--panel)), var(--panel)); border: 1px solid var(--accent); border-radius: 16px; padding: 14px 16px; display: grid; gap: 4px; }
+.pol-head h3 { font-family: var(--display); font-weight: 800; font-size: 22px; line-height: 1.15; margin: 0; }
+.pol-head p { margin: 0; color: #dccfcb; font-size: 14px; }
+.pol-meta { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 12px; margin-top: 6px; font-size: 13px; }
+.pol-meta dt { color: var(--muted); font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase; padding-top: 2px; }
+.pol-meta dd { margin: 0; overflow-wrap: anywhere; }
+.pol section { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 12px 16px 13px; }
+.pol h4 { display: flex; gap: 10px; align-items: baseline; font-family: var(--display); font-weight: 700; font-size: 17px; line-height: 1.25; margin: 0 0 6px; }
+.pol h4 span { font-family: var(--mono); font-size: 12px; color: var(--accent); min-width: 1.6em; }
+.pol p, .pol li { font-size: 14.5px; line-height: 1.55; color: #dccfcb; }
+.pol p { margin: 0 0 7px; } .pol p:last-child { margin-bottom: 0; }
+.pol ul { margin: 0 0 7px; padding-left: 20px; display: grid; gap: 3px; } .pol ul:last-child { margin-bottom: 0; }
+.pol b { color: var(--fg); }
+.pol a { color: var(--accent); }
+.pol .pv-act { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-top: 8px; }
+.pol .pv-act .sm { font-size: 12.5px; color: var(--muted); margin: 0; }
 
 .btn.danger { border-color: color-mix(in srgb, var(--bad) 60%, var(--line)); color: #f3b3aa; }
 /* end-of-run report and personal best */
@@ -3325,20 +3341,40 @@ body.at-home { overflow: hidden; }
       </div><p class="hs-note">Sources include the World Health Organization, the National Kidney Foundation (US), the National Kidney Foundation (Singapore), the Ministry of Health Singapore and HealthHub.</p>`;
     }
   }
+  // The full Privacy Policy (v1.1), shown in the game. Keep it in step with any change to what the game stores or loads.
+  const POLICY_DATE = '18 November 2026';
   function renderPrivacy(key, body) {
-    body.innerHTML = `<div class="cards">
-      <div class="fcard hl wide"><span class="ek">In short</span><h3>Renal Defense does not collect your data</h3>
-        <p>The game does not ask for, collect or store any personal information. There are no accounts, no sign-in, no advertising, and no analytics or tracking code in the game.</p></div>
-      <div class="fcard"><span class="ek">On your device</span><h3>What the game saves</h3>
-        <p>To remember your choices, the game keeps a few items in your browser’s storage on this device: difficulty, sound and auto-start settings, whether you have done the tutorial, which bosses you have met, and your best scores. This never leaves your device and is not sent to us.</p>
-        <p><button class="btn danger" id="pv-clear" type="button">Clear saved data</button></p><p class="sm" id="pv-msg" role="status"></p></div>
-      <div class="fcard"><span class="ek">Hosting</span><h3>Vercel</h3>
-        <p>The game is hosted by Vercel. Like any web host, Vercel may process technical information such as your IP address, browser type and the time of your visit in order to deliver the site and keep it secure. See <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">Vercel’s privacy policy</a>.</p></div>
-      <div class="fcard hl"><span class="ek">Full policy</span><h3>Privacy Policy v1.1</h3>
-        <p>The full policy covers the services the game uses, your rights under Singapore’s Personal Data Protection Act (PDPA), and how to contact us.</p>
-        <p class="pv-pdf"><a class="btn primary donate" href="renal-defense-privacy-policy-v1.1.pdf" download target="_blank" rel="noopener">${IC.file} Download PDF</a></p><p class="sm">PDF · 2 pages · 18 November 2026</p></div>
-      <div class="fcard"><span class="ek">Questions</span><h3>Contact</h3>
-        <p>Email <a href="mailto:dialysisandbeyond@gmail.com">dialysisandbeyond@gmail.com</a>, or message <a href="${IG}" target="_blank" rel="noopener">@dialysisandbeyond</a> on Instagram.</p><p class="sm">Last updated 18 November 2026 · version 2.4</p></div>
+    const sec = (n, t, html) => `<section aria-labelledby="pol-${n}"><h4 id="pol-${n}"><span>${n}.</span>${t}</h4>${html}</section>`;
+    body.innerHTML = `<div class="pol">
+      <div class="pol-head"><h3>Privacy Policy</h3><p>Renal Defense: an educational kidney health game</p>
+        <dl class="pol-meta"><dt>Website</dt><dd><a href="https://renal-tower-defense.vercel.app" target="_blank" rel="noopener">https://renal-tower-defense.vercel.app</a></dd>
+          <dt>Effective</dt><dd>${POLICY_DATE}</dd><dt>Version</dt><dd>1.1</dd></dl></div>
+      ${sec(1, 'About us', `<p>Renal Defense (“the Game”, “we”, “us” or “our”) is a free browser game made and run by Nathaniel Alejandrino, an individual in Singapore who also runs the Instagram account @dialysisandbeyond.</p>
+        <p>The Game is a personal, non-commercial project. It is not run to make a profit, and it is not linked to or endorsed by any organisation. By using the Game, you agree that you have read this policy.</p>`)}
+      ${sec(2, 'Singapore law', `<p>We handle personal data in line with Singapore’s Personal Data Protection Act 2012 (PDPA). This policy is governed by Singapore law, and any dispute about it will be handled by the courts of Singapore.</p>`)}
+      ${sec(3, 'What the Game saves on your device', `<p>The Game has no accounts, ads, analytics or tracking. It doesn’t ask for personal or health information.</p>
+        <p>It saves only these items in your browser, on your device:</p>
+        <ul><li>your difficulty</li><li>your music and sound settings</li><li>your auto-start setting</li><li>whether you’ve finished the tutorial</li><li>which bosses you’ve met</li><li>your best score and stars for each difficulty</li></ul>
+        <p>This information stays on your device. We never receive it and can’t access it. You can delete it at any time with <b>Clear saved data</b> below, or in your browser settings.</p>
+        <div class="pv-act"><button class="btn danger" id="pv-clear" type="button">Clear saved data</button><p class="sm" id="pv-msg" role="status"></p></div>`)}
+      ${sec(4, 'Services we use', `<ul><li><b>Vercel</b> hosts the website and processes technical details such as your IP address and browser type to run it securely. (<a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener">Privacy policy</a>)</li>
+          <li><b>Google Fonts</b> supplies the lettering and receives your IP address when the page loads. (<a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Privacy policy</a>)</li></ul>
+        <p>These services may process data outside Singapore, under their own policies.</p>
+        <p>The Game also links to Instagram and Buy Me a Coffee. The Game sends them nothing, and we aren’t responsible for those sites.</p>`)}
+      ${sec(5, 'Optional support', `<p>The Game is free, and nothing in it requires payment. If you support the project through Buy Me a Coffee, they handle the payment, and we never see your card or bank details. This is personal support for the creator, not a charity donation.</p>`)}
+      ${sec(6, 'If you contact us', `<ul><li><b>What we collect.</b> If you contact us, we may collect what you share, such as your name, email, phone number, social media username and your message.</li>
+          <li><b>How we use it.</b> By sending it, you agree that we may use it to reply to you, fix problems, improve the Game, manage our communications, and meet legal requirements.</li>
+          <li><b>Sharing.</b> We don’t sell or share it, unless the law requires us to.</li>
+          <li><b>Protection.</b> We take reasonable steps to keep it safe.</li>
+          <li><b>Retention.</b> We delete it once we no longer need it.</li>
+          <li><b>Breaches.</b> If a data breach affects your personal data, we will let you know.</li></ul>`)}
+      ${sec(7, 'Your rights', `<p>You can ask us to:</p><ul><li>show you the personal data we hold about you</li><li>correct it</li><li>stop using it, or delete it</li><li>stop contacting you.</li></ul>
+        <p>Contact us using the details in section 10. We will reply as soon as we reasonably can, and within the time the PDPA allows.</p>`)}
+      ${sec(8, 'Children', `<p>The Game is suitable for younger players and never asks them for personal information. A parent or guardian can contact us to have a child’s information deleted.</p>`)}
+      ${sec(9, 'Not medical advice', `<p>Renal Defense is an educational game, not a medical tool. Its eGFR bar and other health values are game scores, not real readings. Please talk to a doctor about your own health.</p>`)}
+      ${sec(10, 'Contact', `<p><b>Nathaniel Alejandrino, Game DPO</b></p>
+        <p>Email: <a href="mailto:dialysisandbeyond@gmail.com">dialysisandbeyond@gmail.com</a><br>Instagram: <a href="${IG}" target="_blank" rel="noopener">@dialysisandbeyond</a></p>`)}
+      ${sec(11, 'Changes', `<p>We may update this policy from time to time, and will always do so before changing how the Game handles information. The updated policy applies from the date shown at the top.</p>`)}
     </div>`;
     let armed = false;
     $('pv-clear').addEventListener('click', e => {

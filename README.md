@@ -1,6 +1,6 @@
 # Renal Defense
 
-> **Version 2.4** rewrites the About and Kidney text, redesigns the tower and threat cards, and adds the full Privacy Policy v1.1 as a downloadable PDF (`renal-defense-privacy-policy-v1.1.pdf`).
+> **Version 2.4** rewrites the About and Kidney text, redesigns the tower and threat cards, and shows the full Privacy Policy v1.1 on the game’s Privacy page.
 >
 > **Version 2.3** adds a home menu with the animated defenders, an About section (game director, towers, threats and kidney health cards), a privacy policy, an end-of-run report showing which threats got through, personal bests per difficulty, and a preview of the next wave. The game was renamed from Renal Tower Defense to Renal Defense.
 >
